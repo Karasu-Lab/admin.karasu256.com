@@ -1,0 +1,103 @@
+{
+  "Metadata": {
+    "title": "Karasu Lab Admin"
+  },
+  "header": {
+    "signIn": "Sign in",
+    "accountMenuLabel": "Account menu",
+    "settings": "Settings",
+    "signOut": "Sign out"
+  },
+  "Navigation": {
+    "dashboard": "Dashboard",
+    "containers": "Containers",
+    "images": "Images"
+  },
+  "Dashboard": {
+    "title": "Dashboard",
+    "runningContainers": "Running Containers",
+    "availableImages": "Available Images"
+  },
+  "Containers": {
+    "title": "Containers",
+    "id": "ID",
+    "name": "Name",
+    "image": "Image",
+    "status": "Status",
+    "ports": "Ports",
+    "actions": "Actions",
+    "start": "Start",
+    "stop": "Stop",
+    "refresh": "Refresh",
+    "update": "Update and Restart",
+    "pullWithTag": "Pull with Tag",
+    "viewLogs": "View Logs",
+    "noContainers": "No containers",
+    "updateProgress": {
+      "pulling": "Pulling image...",
+      "stopping": "Stopping container...",
+      "starting": "Starting container...",
+      "done": "Update complete",
+      "error": "Update failed"
+    }
+  },
+  "Images": {
+    "title": "Images",
+    "repository": "Repository",
+    "tag": "Tag",
+    "size": "Size",
+    "created": "Created",
+    "actions": "Actions",
+    "delete": "Delete",
+    "editTag": "Edit Tag",
+    "deleteConfirm": "Are you sure you want to delete this image?",
+    "noImages": "No images available",
+    "refresh": "Refresh",
+    "pull": {
+      "title": "Pull Image",
+      "description": "Pull an image from a container registry by name and tag.",
+      "image": "Image Name",
+      "imagePlaceholder": "e.g. nginx:latest",
+      "start": "Pull",
+      "progress": "Pulling...",
+      "done": "Pull complete"
+    },
+    "editTagDialog": {
+      "title": "Edit Tag",
+      "repo": "Repository",
+      "tag": "Tag",
+      "confirm": "Save",
+      "cancel": "Cancel"
+    }
+  },
+  "ContainerDetail": {
+    "title": "Container Detail",
+    "name": "Name",
+    "image": "Image",
+    "status": "Status",
+    "created": "Created",
+    "ports": "Ports",
+    "environment": "Environment Variables",
+    "mounts": "Mounts",
+    "source": "Source",
+    "destination": "Destination",
+    "notFound": "Container not found",
+    "viewLogs": "View Logs",
+    "maximizeLogs": "Maximize logs"
+  },
+  "Logs": {
+    "title": "Logs",
+    "connecting": "Connecting...",
+    "empty": "No log output",
+    "autoScroll": "Auto Scroll",
+    "copyAll": "Copy All",
+    "clear": "Clear",
+    "maximize": "Maximize"
+  },
+  "Common": {
+    "loading": "Loading...",
+    "error": "An error occurred",
+    "retry": "Retry",
+    "close": "Close"
+  }
+}
