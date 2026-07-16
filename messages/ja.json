@@ -1,0 +1,103 @@
+{
+  "Metadata": {
+    "title": "Karasu Lab 管理"
+  },
+  "header": {
+    "signIn": "サインイン",
+    "accountMenuLabel": "アカウントメニュー",
+    "settings": "設定",
+    "signOut": "サインアウト"
+  },
+  "Navigation": {
+    "dashboard": "ダッシュボード",
+    "containers": "コンテナ",
+    "images": "イメージ"
+  },
+  "Dashboard": {
+    "title": "ダッシュボード",
+    "runningContainers": "稼働中コンテナ",
+    "availableImages": "利用可能イメージ"
+  },
+  "Containers": {
+    "title": "コンテナ",
+    "id": "ID",
+    "name": "名前",
+    "image": "イメージ",
+    "status": "ステータス",
+    "ports": "ポート",
+    "actions": "操作",
+    "start": "起動",
+    "stop": "停止",
+    "refresh": "更新",
+    "update": "更新して再起動",
+    "pullWithTag": "タグを指定して取得",
+    "viewLogs": "ログ表示",
+    "noContainers": "コンテナなし",
+    "updateProgress": {
+      "pulling": "イメージ取得中...",
+      "stopping": "コンテナ停止中...",
+      "starting": "コンテナ起動中...",
+      "done": "更新完了",
+      "error": "更新失敗"
+    }
+  },
+  "Images": {
+    "title": "イメージ",
+    "repository": "リポジトリ",
+    "tag": "タグ",
+    "size": "サイズ",
+    "created": "作成日時",
+    "actions": "操作",
+    "delete": "削除",
+    "editTag": "タグ編集",
+    "deleteConfirm": "このイメージを削除しますか？",
+    "noImages": "利用可能なイメージなし",
+    "refresh": "更新",
+    "pull": {
+      "title": "イメージの取得",
+      "description": "レジストリからイメージ名とタグを指定して取得します。",
+      "image": "イメージ名",
+      "imagePlaceholder": "例: nginx:latest",
+      "start": "取得",
+      "progress": "取得中...",
+      "done": "取得完了"
+    },
+    "editTagDialog": {
+      "title": "タグ編集",
+      "repo": "リポジトリ",
+      "tag": "タグ",
+      "confirm": "保存",
+      "cancel": "キャンセル"
+    }
+  },
+  "ContainerDetail": {
+    "title": "コンテナ詳細",
+    "name": "名前",
+    "image": "イメージ",
+    "status": "ステータス",
+    "created": "作成日時",
+    "ports": "ポート",
+    "environment": "環境変数",
+    "mounts": "マウント",
+    "source": "ソース",
+    "destination": "マウント先",
+    "notFound": "コンテナが見つかりません",
+    "viewLogs": "ログ表示",
+    "maximizeLogs": "ログを最大化"
+  },
+  "Logs": {
+    "title": "ログ",
+    "connecting": "接続中...",
+    "empty": "ログ出力なし",
+    "autoScroll": "自動スクロール",
+    "copyAll": "全コピー",
+    "clear": "クリア",
+    "maximize": "最大化"
+  },
+  "Common": {
+    "loading": "読み込み中...",
+    "error": "エラーが発生しました",
+    "retry": "再試行",
+    "close": "閉じる"
+  }
+}
