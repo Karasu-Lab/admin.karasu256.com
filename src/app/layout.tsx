@@ -16,7 +16,7 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const locale = await getLocale();
   const messages = await getMessages();
-  const sessionUser = await getSessionUser();
+  const sessionUser = await getSessionUser(process.env.NEXT_PUBLIC_ACCOUNTS_URL);
   const initialUser = sessionUser
     ? { uid: sessionUser.uid, iconUrl: sessionUser.image, displayName: sessionUser.name, email: sessionUser.email }
     : null;
