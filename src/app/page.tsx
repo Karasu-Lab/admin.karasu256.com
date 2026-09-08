@@ -1,7 +1,9 @@
 import { getTranslations } from 'next-intl/server';
 import { Card, CardContent, CardHeader, CardTitle } from '@Hashibutogarasu/ui';
 import { NavSidebar } from '@/components/nav-sidebar';
+import { DeploymentsSection } from '@/components/deployments-section';
 import { apiFetch } from '@/lib/api-fetch';
+import { VercelConnectionStore, VercelDeploymentsClient } from '@/lib/vercel';
 
 interface ContainerInfo {
   id: string;
@@ -41,7 +43,8 @@ async function fetchImages(): Promise<ImageInfo[]> {
 
 export default async function DashboardPage() {
   const t = await getTranslations('Dashboard');
-  const [containers, images] = await Promise.all([fetchContainers(), fetchImages()]);
+  const [containers, images, vercelConnection] = await Promise.all([fetchContainers(), fetchImages(), new VercelConnectionStore().get()]);
+  const deployments = vercelConnection ? await new VercelDeploymentsClient().listRecent(vercelConnection) : null;
 
   return (
     <div className="flex flex-1">
@@ -66,6 +69,7 @@ export default async function DashboardPage() {
             </CardContent>
           </Card>
         </div>
+        <DeploymentsSection connected={vercelConnection !== null} deployments={deployments} />
       </main>
     </div>
   );

@@ -6,7 +6,9 @@
     "signIn": "Sign in",
     "accountMenuLabel": "Account menu",
     "settings": "Settings",
-    "signOut": "Sign out"
+    "signOut": "Sign out",
+    "connectVercel": "Connect Vercel",
+    "vercelConnected": "Disconnect Vercel"
   },
   "Navigation": {
     "dashboard": "Dashboard",
@@ -17,6 +19,14 @@
     "title": "Dashboard",
     "runningContainers": "Running Containers",
     "availableImages": "Available Images"
+  },
+  "Deployments": {
+    "title": "Recent Deployments",
+    "notConnected": "Connect Vercel from the header to see recent deployments.",
+    "noDeployments": "No deployments found.",
+    "target": "Target",
+    "created": "Created",
+    "viewDetails": "View details"
   },
   "Containers": {
     "title": "Containers",

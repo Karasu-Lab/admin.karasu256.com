@@ -6,7 +6,9 @@
     "signIn": "サインイン",
     "accountMenuLabel": "アカウントメニュー",
     "settings": "設定",
-    "signOut": "サインアウト"
+    "signOut": "サインアウト",
+    "connectVercel": "Vercelと接続",
+    "vercelConnected": "Vercelとの接続を解除"
   },
   "Navigation": {
     "dashboard": "ダッシュボード",
@@ -17,6 +19,14 @@
     "title": "ダッシュボード",
     "runningContainers": "稼働中コンテナ",
     "availableImages": "利用可能イメージ"
+  },
+  "Deployments": {
+    "title": "直近のデプロイ",
+    "notConnected": "ヘッダーからVercelと接続すると、直近のデプロイが表示されます。",
+    "noDeployments": "デプロイが見つかりません。",
+    "target": "ターゲット",
+    "created": "作成日時",
+    "viewDetails": "詳細を確認"
   },
   "Containers": {
     "title": "コンテナ",

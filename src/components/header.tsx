@@ -2,6 +2,8 @@ import Link from 'next/link';
 import { getLocale, getTranslations } from 'next-intl/server';
 import { Header as UiHeader, AccountMenu, type CountryCode } from '@Hashibutogarasu/ui';
 import { getRootAppUrl, signOutAction, setLocaleAction } from '@Hashibutogarasu/utils/server';
+import { VercelConnectionStore } from '@/lib/vercel';
+import { VercelConnectButton } from './vercel-connect-button';
 
 const localeLabels: Record<'en' | 'ja', { label: string; countryCode: CountryCode }> = {
   en: { label: 'English', countryCode: 'US' },
@@ -18,6 +20,7 @@ export async function Header() {
   const rootUrl = await getRootAppUrl();
   const t = await getTranslations('header');
   const currentLocale = await getLocale();
+  const vercelConnection = await new VercelConnectionStore().get();
 
   return (
     <UiHeader
@@ -30,6 +33,7 @@ export async function Header() {
       currentLocale={currentLocale}
       onLocaleChange={setLocaleAction}
     >
+      <VercelConnectButton connected={vercelConnection !== null} connectLabel={t('connectVercel')} connectedLabel={t('vercelConnected')} />
       <AccountMenu
         signInHref={accountsUrl}
         settingsHref={`${rootUrl}/settings`}
