@@ -52,7 +52,7 @@ async function fetchContainer(id: string): Promise<ContainerInspectInfo | null> 
 }
 
 function SectionHeader({ title }: { title: string }) {
-  return <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider pt-4 pb-1">{title}</p>;
+  return <p className="text-sm font-semibold text-muted-foreground pt-4 pb-1">{title}</p>;
 }
 
 function InfoRow({ icon: Icon, label, children }: { icon: React.ComponentType<{ className?: string }>; label: string; children: React.ReactNode }) {

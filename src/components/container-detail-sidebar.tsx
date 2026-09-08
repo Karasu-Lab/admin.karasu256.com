@@ -45,7 +45,7 @@ export function ContainerDetailSidebar({ containerId }: ContainerDetailSidebarPr
 
       <div className="flex-1 min-w-[440px] flex flex-col min-h-0">
         <div className="flex items-center justify-between pt-4 pb-1 shrink-0">
-          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">{tLogs('title')}</p>
+          <p className="text-sm font-semibold text-muted-foreground">{tLogs('title')}</p>
           <div className="flex items-center gap-1">
             <LogToolbar compact lines={lines} autoScroll={autoScroll} onAutoScrollChange={setAutoScroll} onClear={() => setLines([])} />
             <LogMaximizeButton compact onClick={() => setMaximizing(true)} />
