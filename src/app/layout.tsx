@@ -16,7 +16,7 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const locale = await getLocale();
   const messages = await getMessages();
-  const sessionUser = await getSessionUser(process.env.NEXT_PUBLIC_ACCOUNTS_URL);
+  const sessionUser = await getSessionUser(process.env.NEXT_PUBLIC_AUTH_URL);
   const initialUser = sessionUser
     ? { uid: sessionUser.uid, iconUrl: sessionUser.image, displayName: sessionUser.name, email: sessionUser.email }
     : null;
@@ -25,7 +25,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     <html lang={locale} className={`${geistSans.variable} ${geistMono.variable} ${notoSansJP.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col">
         <NextIntlClientProvider messages={messages}>
-          <SessionProvider baseURL={process.env.NEXT_PUBLIC_ACCOUNTS_URL} initialUser={initialUser}>
+          <SessionProvider baseURL={process.env.NEXT_PUBLIC_AUTH_URL} initialUser={initialUser}>
             <PopUpMenuProvider>
               <TooltipProvider>
                 <Header />
