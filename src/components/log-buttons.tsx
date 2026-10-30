@@ -2,7 +2,7 @@
 
 import { Lock, Unlock, Copy, Eraser, Maximize2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { Button, Tooltip, TooltipTrigger, TooltipContent } from '@Hashibutogarasu/ui';
+import { Button, Tooltip, TooltipTrigger, TooltipContent } from '@karasu-lab/ui';
 
 interface CompactProp {
   compact?: boolean;

@@ -20,7 +20,7 @@ import {
   TableHeader,
   TableRow,
   Skeleton,
-} from '@Hashibutogarasu/ui';
+} from '@karasu-lab/ui';
 import { Pencil, RefreshCw, Trash2 } from 'lucide-react';
 
 interface ImageInfo {

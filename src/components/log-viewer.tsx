@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useTranslations } from 'next-intl';
-import { ScrollArea } from '@Hashibutogarasu/ui';
+import { ScrollArea } from '@karasu-lab/ui';
 
 interface LogViewerProps {
   containerId: string;

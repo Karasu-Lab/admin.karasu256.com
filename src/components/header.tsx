@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { getLocale, getTranslations } from 'next-intl/server';
-import { Header as UiHeader, AccountMenu, type CountryCode } from '@Hashibutogarasu/ui';
-import { getRootAppUrl, getSignInUrl, signOutAction, setLocaleAction } from '@Hashibutogarasu/utils/server';
+import { Header as UiHeader, AccountMenu, type CountryCode } from '@karasu-lab/ui';
+import { getRootAppUrl, getSignInUrl, signOutAction, setLocaleAction } from '@karasu-lab/utils/server';
 import { VercelConnectionStore } from '@/lib/vercel';
 import { VercelConnectButton } from './vercel-connect-button';
 

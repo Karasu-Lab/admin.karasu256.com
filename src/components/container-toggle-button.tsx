@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { useRouter } from '@/i18n/navigation';
-import { Button, Tooltip, TooltipContent, TooltipTrigger } from '@Hashibutogarasu/ui';
+import { Button, Tooltip, TooltipContent, TooltipTrigger } from '@karasu-lab/ui';
 import { Play, Square } from 'lucide-react';
 
 interface ContainerToggleButtonProps {

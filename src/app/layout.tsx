@@ -1,9 +1,9 @@
 import type { Metadata } from 'next';
 import { getLocale, getMessages, getTranslations } from 'next-intl/server';
 import { NextIntlClientProvider } from 'next-intl';
-import { PopUpMenuProvider, SessionProvider, TooltipProvider } from '@Hashibutogarasu/ui';
-import { geistSans, geistMono, notoSansJP } from '@Hashibutogarasu/ui/fonts';
-import { getSessionUser } from '@Hashibutogarasu/utils/server';
+import { PopUpMenuProvider, SessionProvider, TooltipProvider } from '@karasu-lab/ui';
+import { geistSans, geistMono, notoSansJP } from '@karasu-lab/ui/fonts';
+import { getSessionUser } from '@karasu-lab/utils/server';
 import { Header } from '@/components/header';
 import { GithubCorner } from '@/components/github-corner';
 import './globals.css';
