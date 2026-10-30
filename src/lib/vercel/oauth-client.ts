@@ -1,6 +1,6 @@
 import 'server-only';
 import { createHash, randomBytes } from 'node:crypto';
-import { MissingEnvError } from '@Hashibutogarasu/utils/server';
+import { MissingEnvError } from '@karasu-lab/utils/server';
 import type { VercelConnection } from './types';
 
 /** A PKCE (RFC 7636) verifier/challenge pair for the authorization code flow. */

@@ -1,5 +1,5 @@
 import { defineRouting } from 'next-intl/routing';
-import type { Locale } from '@Hashibutogarasu/types';
+import type { Locale } from '@karasu-lab/types';
 
 export const routing = defineRouting({
   locales: ['en', 'ja'] satisfies Locale[],

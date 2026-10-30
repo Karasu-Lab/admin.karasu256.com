@@ -16,7 +16,7 @@ import {
   Marker,
   buttonVariants,
   type MarkerStep,
-} from '@Hashibutogarasu/ui';
+} from '@karasu-lab/ui';
 import type { DeploymentSummary, DeploymentReadyState } from '@/lib/vercel';
 
 interface DeploymentsSectionProps {

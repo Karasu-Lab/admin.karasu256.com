@@ -9,9 +9,9 @@
     "lint": "eslint"
   },
   "dependencies": {
-    "@Hashibutogarasu/types": "workspace:*",
-    "@Hashibutogarasu/ui": "workspace:*",
-    "@Hashibutogarasu/utils": "workspace:*",
+    "@karasu-lab/types": "0.1.0-0e2dcae",
+    "@karasu-lab/ui": "0.1.0-ab4b5a1",
+    "@karasu-lab/utils": "0.1.0-967de79",
     "clsx": "^2.1.1",
     "framer-motion": "^12.38.0",
     "lucide-react": "^1.16.0",

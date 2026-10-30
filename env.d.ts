@@ -1,4 +1,4 @@
-import type { NodeEnv } from '@Hashibutogarasu/types';
+import type { NodeEnv } from '@karasu-lab/types';
 
 declare global {
   namespace NodeJS {

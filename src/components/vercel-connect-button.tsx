@@ -1,5 +1,5 @@
 import { SiVercel } from 'react-icons/si';
-import { buttonVariants, Tooltip, TooltipContent, TooltipTrigger } from '@Hashibutogarasu/ui';
+import { buttonVariants, Tooltip, TooltipContent, TooltipTrigger } from '@karasu-lab/ui';
 import { CheckCircle2 } from 'lucide-react';
 
 interface VercelConnectButtonProps {

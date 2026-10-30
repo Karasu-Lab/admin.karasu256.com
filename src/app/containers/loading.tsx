@@ -1,5 +1,5 @@
 import { NavSidebar } from '@/components/nav-sidebar';
-import { Skeleton } from '@Hashibutogarasu/ui';
+import { Skeleton } from '@karasu-lab/ui';
 
 export default function ContainersLoading() {
   return (

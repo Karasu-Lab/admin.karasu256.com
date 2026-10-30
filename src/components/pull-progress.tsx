@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useTranslations } from 'next-intl';
-import { ProgressBar, Badge } from '@Hashibutogarasu/ui';
+import { ProgressBar, Badge } from '@karasu-lab/ui';
 
 interface PullEvent {
   status: string;
