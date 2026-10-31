@@ -16,3 +16,9 @@ overrides:
   '@better-auth/passkey': ^1.7.12
   '@better-auth/sso': ^1.7.12
   '@karasu-lab/utils': 0.1.0-de578b8
+# First-party packages are published and pinned within the same day by
+# design, so they can never satisfy pnpm's default minimum release age
+# at deploy time. Exempt the org's own scope; the policy still applies
+# to every third-party dependency.
+minimumReleaseAgeExclude:
+  - '@karasu-lab/*'
