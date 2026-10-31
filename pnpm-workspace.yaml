@@ -12,3 +12,6 @@ allowBuilds:
   '@parcel/watcher': true
   cpu-features: true
   ssh2: true
+overrides:
+  '@better-auth/passkey': ^1.7.12
+  '@better-auth/sso': ^1.7.12
