@@ -15,3 +15,4 @@ allowBuilds:
 overrides:
   '@better-auth/passkey': ^1.7.12
   '@better-auth/sso': ^1.7.12
+  '@karasu-lab/utils': 0.1.0-de578b8
