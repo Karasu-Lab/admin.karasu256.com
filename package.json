@@ -2,6 +2,7 @@
   "name": "admin.karasu256.com",
   "version": "0.1.0",
   "private": true,
+  "packageManager": "pnpm@12.15.0",
   "scripts": {
     "dev": "next dev --port 3003",
     "build": "next build",
