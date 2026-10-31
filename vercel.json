@@ -1,6 +1,6 @@
 {
-  "buildCommand": "cd ../.. && pnpm turbo build --filter=admin.karasu256.com",
-  "installCommand": "cd ../.. && pnpm install --frozen-lockfile",
+  "buildCommand": "pnpm build",
+  "installCommand": "printf '//npm.pkg.github.com/:_authToken=%s\n' \"$NODE_AUTH_TOKEN\" >> \"$HOME/.npmrc\" && pnpm install --no-frozen-lockfile",
   "build": {
     "env": {
       "ENABLE_EXPERIMENTAL_COREPACK": "1"
