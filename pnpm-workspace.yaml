@@ -1,0 +1,14 @@
+allowBuilds:
+  '@tailwindcss/oxide': true
+  sharp: true
+  unrs-resolver: true
+  '@firebase/util': true
+  protobufjs: true
+  esbuild: true
+  workerd: true
+  '@swc/core': true
+  simple-git-hooks: true
+  core-js: true
+  '@parcel/watcher': true
+  cpu-features: true
+  ssh2: true
