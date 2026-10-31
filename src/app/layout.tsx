@@ -10,7 +10,14 @@ import './globals.css';
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations('Metadata');
-  return { title: t('title') };
+  return {
+    title: t('title'),
+    icons: {
+      icon: '/icons/kara_su.png',
+      shortcut: '/icons/kara_su.png',
+      apple: '/icons/kara_su.png',
+    },
+  };
 }
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
