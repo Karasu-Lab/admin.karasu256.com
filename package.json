@@ -10,9 +10,9 @@
     "lint": "eslint"
   },
   "dependencies": {
-    "@karasu-lab/types": "0.1.0-0e2dcae",
-    "@karasu-lab/ui": "0.1.0-4f34abc",
-    "@karasu-lab/utils": "0.1.0-de578b8",
+    "@karasu-lab/types": "0.1.0-5fc5494",
+    "@karasu-lab/ui": "0.1.0-518ab4d",
+    "@karasu-lab/utils": "0.1.0-be51f04",
     "clsx": "^2.1.1",
     "framer-motion": "^12.38.0",
     "lucide-react": "^1.16.0",
