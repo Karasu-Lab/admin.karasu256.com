@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { Badge, Button, Card, CardContent, CardDescription, CardHeader, CardTitle, toast } from '@karasu-lab/ui';
+import { Badge, Button, Card, CardContent, CardDescription, CardHeader, CardTitle, Spinner, toast } from '@karasu-lab/ui';
 import { linkPackageAction } from '@/app/actions';
 import type { InstallationRepository } from '@/lib/tenants';
 
@@ -67,6 +67,7 @@ export function RepositoryImport({
                 </Badge>
               ) : (
                 <Button className="ml-auto" disabled={busyId === repository.id} onClick={() => link(repository)}>
+                  {busyId === repository.id && <Spinner />}
                   {busyId === repository.id ? t('linking') : t('link')}
                 </Button>
               )}

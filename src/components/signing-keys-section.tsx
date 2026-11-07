@@ -17,6 +17,7 @@ import {
   DialogPortal,
   DialogTitle,
   Input,
+  Spinner,
   Switch,
   toast,
 } from '@karasu-lab/ui';
@@ -136,6 +137,7 @@ export function SigningKeysSection({ authApiUrl, settingsUrl, keys, onRefresh }:
             className="max-w-xs"
           />
           <Button onClick={create} disabled={busy || !sessionId || !newName}>
+            {busy && <Spinner />}
             {busy ? t('creating') : t('create')}
           </Button>
           <Button variant="outline" render={<a href={authorizeUrl} />}>

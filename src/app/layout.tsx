@@ -7,6 +7,7 @@ import { getSessionUser } from '@karasu-lab/utils/server';
 import { Header } from '@/components/header';
 import { getClientConfig } from '@/lib/client-config';
 import { GithubCorner } from '@/components/github-corner';
+import { NavSidebar } from '@/components/nav-sidebar';
 import './globals.css';
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -38,7 +39,10 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             <PopUpMenuProvider>
               <TooltipProvider>
                 <Header />
-                <main className="flex flex-1">{children}</main>
+                <div className="flex w-full flex-1 flex-col md:flex-row">
+                  <NavSidebar />
+                  <main className="min-w-0 flex-1">{children}</main>
+                </div>
                 <GithubCorner />
               </TooltipProvider>
             </PopUpMenuProvider>
