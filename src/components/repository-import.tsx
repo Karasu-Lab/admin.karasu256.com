@@ -46,7 +46,7 @@ export function RepositoryImport({
   onRefresh,
   disabled,
 }: {
-  organizationId: string;
+  organizationId?: string;
   repositories: InstallationRepository[];
   linkedFullNames: string[];
   onRefresh?: () => void;
@@ -69,6 +69,7 @@ export function RepositoryImport({
   };
 
   const link = async (repository: InstallationRepository) => {
+    if (!organizationId) return;
     setBusyId(repository.id);
     try {
       await linkPackageAction({
