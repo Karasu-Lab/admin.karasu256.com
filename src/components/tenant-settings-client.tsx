@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { Badge, Button, Card, CardContent, CardHeader, CardTitle, toast } from '@karasu-lab/ui';
 import { getTenantSettingsDataAction, type TenantSettingsData } from '@/app/actions';
+import { DeleteTenantSection } from './delete-tenant-section';
 import { LinkedPackagesSection } from './linked-packages-section';
 import { SigningKeysSection } from './signing-keys-section';
 
@@ -99,6 +100,7 @@ export function TenantSettingsClient({
           </Card>
           <LinkedPackagesSection organizationId={tenantId} packages={overview.linkedPackages} onRefresh={load} />
           <SigningKeysSection authApiUrl={authApiUrl} settingsUrl={settingsUrl} keys={overview.signingKeys} onRefresh={load} />
+          <DeleteTenantSection organizationId={tenantId} organizationName={overview.organization.name} authApiUrl={authApiUrl} />
         </>
       )}
     </main>
