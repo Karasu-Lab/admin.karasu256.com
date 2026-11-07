@@ -77,14 +77,14 @@ export function DashboardClient({ tenantId }: { tenantId?: string }) {
       done: Boolean(npmRepository?.npmRepositoryFullName),
       title: tOnboarding('npmRepository'),
       description: tOnboarding('npmRepositoryDescription'),
-      href: selected ? `/npm-setup?tenant=${selected.id}` : undefined,
+      href: selected ? `/setup?tenant=${selected.id}` : undefined,
       hrefLabel: tOnboarding('startSetup'),
     },
     {
       done: Boolean(npmRepository?.workflowTemplateRepositoryFullName),
       title: tOnboarding('templateRepository'),
       description: tOnboarding('templateRepositoryDescription'),
-      href: selected ? `/npm-setup?tenant=${selected.id}` : undefined,
+      href: selected ? `/setup?tenant=${selected.id}` : undefined,
       hrefLabel: tOnboarding('startSetup'),
     },
     {
@@ -96,8 +96,8 @@ export function DashboardClient({ tenantId }: { tenantId?: string }) {
       done: Boolean(overview && overview.linkedPackages.length > 0),
       title: tOnboarding('package'),
       description: tOnboarding('packageDescription'),
-      href: settingsHref,
-      hrefLabel: tOnboarding('openSettings'),
+      href: selected ? `/packages?tenant=${selected.id}` : undefined,
+      hrefLabel: tOnboarding('openPackages'),
     },
   ];
 

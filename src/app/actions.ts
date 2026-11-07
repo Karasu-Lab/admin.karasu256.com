@@ -80,31 +80,40 @@ async function createOrReuseRepository(input: {
   }
 }
 
-export async function startNpmSetupAction(input: {
-  organizationId: string;
-  npmRepositoryName: string;
-  templateRepositoryName: string;
-}): Promise<{
-  npmRepositoryFullName: string;
-  templateRepositoryFullName: string;
-  npmRepositoryOutcome: RepositorySetupOutcome;
-  templateRepositoryOutcome: RepositorySetupOutcome;
+async function prepareRepositorySetup(organizationId: string): Promise<{
+  userId: string;
+  signingUserId: string;
+  owner: string;
+  targetType: 'Organization' | 'User';
 }> {
   const userId = await requireUserId();
-  const overview = await getTenantOverview(input.organizationId, userId);
+  const overview = await getTenantOverview(organizationId, userId);
   if (!overview.installation) throw new Error('github_app_not_installed');
   const signingUserId = overview.installation.installedByUserId;
   if (!signingUserId) throw new Error('signing_user_unknown');
-  const owner = overview.installation.targetLogin;
-  const targetType = overview.installation.targetType === 'organization' ? 'Organization' : 'User';
+  return {
+    userId,
+    signingUserId,
+    owner: overview.installation.targetLogin,
+    targetType: overview.installation.targetType === 'organization' ? 'Organization' : 'User',
+  };
+}
+
+export async function startNpmRepositorySetupAction(input: {
+  organizationId: string;
+  npmRepositoryName: string;
+}): Promise<{ npmRepositoryFullName: string; outcome: RepositorySetupOutcome }> {
+  const { userId, signingUserId, owner, targetType } = await prepareRepositorySetup(input.organizationId);
+  const existing = await getTenantNpmRepository(input.organizationId);
+  const templateRepositoryName = existing?.workflowTemplateRepositoryName ?? 'workflow-templates';
   await saveTenantNpmRepository({
     organizationId: input.organizationId,
     owner,
     npmRepositoryName: input.npmRepositoryName,
-    workflowTemplateRepositoryName: input.templateRepositoryName,
+    workflowTemplateRepositoryName: templateRepositoryName,
   });
   const knownRepositories = await listTenantRepositories(input.organizationId);
-  const npmSetup = await createOrReuseRepository({
+  const setup = await createOrReuseRepository({
     organizationId: input.organizationId,
     userId,
     owner,
@@ -112,36 +121,19 @@ export async function startNpmSetupAction(input: {
     name: input.npmRepositoryName,
     knownRepositories,
   });
-  const npmRepository = npmSetup.repository;
-  const templateSetup = await createOrReuseRepository({
-    organizationId: input.organizationId,
-    userId,
-    owner,
-    targetType,
-    name: input.templateRepositoryName,
-    isTemplate: true,
-    knownRepositories,
-  });
-  const templateRepository = templateSetup.repository;
+  const npmRepository = setup.repository;
   await saveTenantNpmRepository({
     organizationId: input.organizationId,
     owner,
     npmRepositoryName: input.npmRepositoryName,
-    workflowTemplateRepositoryName: input.templateRepositoryName,
+    workflowTemplateRepositoryName: templateRepositoryName,
     npmRepositoryId: npmRepository.id,
     npmRepositoryFullName: npmRepository.fullName,
-    workflowTemplateRepositoryId: templateRepository.id,
-    workflowTemplateRepositoryFullName: templateRepository.fullName,
   });
   await registerRepository({
     repositoryId: npmRepository.id,
     remote: repositoryRemote(npmRepository.fullName),
     isPrivate: npmRepository.private,
-  });
-  await registerRepository({
-    repositoryId: templateRepository.id,
-    remote: repositoryRemote(templateRepository.fullName),
-    isPrivate: templateRepository.private,
   });
   await seedRepositoryFiles({
     organizationId: input.organizationId,
@@ -152,6 +144,46 @@ export async function startNpmSetupAction(input: {
     pullRequestTitle: 'Set up the release flow',
     files: NPM_REPOSITORY_FILES,
   });
+  return { npmRepositoryFullName: npmRepository.fullName, outcome: setup.outcome };
+}
+
+export async function startTemplateRepositorySetupAction(input: {
+  organizationId: string;
+  templateRepositoryName: string;
+}): Promise<{ templateRepositoryFullName: string; outcome: RepositorySetupOutcome }> {
+  const { userId, signingUserId, owner, targetType } = await prepareRepositorySetup(input.organizationId);
+  const existing = await getTenantNpmRepository(input.organizationId);
+  const npmRepositoryName = existing?.npmRepositoryName ?? 'npm';
+  await saveTenantNpmRepository({
+    organizationId: input.organizationId,
+    owner,
+    npmRepositoryName,
+    workflowTemplateRepositoryName: input.templateRepositoryName,
+  });
+  const knownRepositories = await listTenantRepositories(input.organizationId);
+  const setup = await createOrReuseRepository({
+    organizationId: input.organizationId,
+    userId,
+    owner,
+    targetType,
+    name: input.templateRepositoryName,
+    isTemplate: true,
+    knownRepositories,
+  });
+  const templateRepository = setup.repository;
+  await saveTenantNpmRepository({
+    organizationId: input.organizationId,
+    owner,
+    npmRepositoryName,
+    workflowTemplateRepositoryName: input.templateRepositoryName,
+    workflowTemplateRepositoryId: templateRepository.id,
+    workflowTemplateRepositoryFullName: templateRepository.fullName,
+  });
+  await registerRepository({
+    repositoryId: templateRepository.id,
+    remote: repositoryRemote(templateRepository.fullName),
+    isPrivate: templateRepository.private,
+  });
   await seedRepositoryFiles({
     organizationId: input.organizationId,
     signingUserId,
@@ -161,12 +193,7 @@ export async function startNpmSetupAction(input: {
     pullRequestTitle: 'Set up the shared CI workflow',
     files: workflowTemplateFiles(templateRepository.fullName),
   });
-  return {
-    npmRepositoryFullName: npmRepository.fullName,
-    templateRepositoryFullName: templateRepository.fullName,
-    npmRepositoryOutcome: npmSetup.outcome,
-    templateRepositoryOutcome: templateSetup.outcome,
-  };
+  return { templateRepositoryFullName: templateRepository.fullName, outcome: setup.outcome };
 }
 
 function uniqueBranchName(base: string): string {
@@ -593,7 +620,7 @@ export async function getDashboardDataAction(tenantId?: string): Promise<Dashboa
   return { signedIn: true, tenants, selected, overview, npmRepository, repositories };
 }
 
-export interface NpmSetupData {
+export interface SetupData {
   signedIn: boolean;
   selected: TenantSummary | null;
   overview: TenantOverview | null;
@@ -601,7 +628,7 @@ export interface NpmSetupData {
   repositories: InstallationRepository[];
 }
 
-export async function getNpmSetupDataAction(tenantId?: string): Promise<NpmSetupData> {
+export async function getSetupDataAction(tenantId?: string): Promise<SetupData> {
   const user = await getSessionUser(getClientConfig().authApiUrl);
   if (!user) {
     return { signedIn: false, selected: null, overview: null, npmRepository: null, repositories: [] };
@@ -632,6 +659,26 @@ export async function getTenantSettingsDataAction(organizationId: string): Promi
   ]);
   const overview = await reconcileLinkedPackages({ organizationId, userId, overview: loadedOverview, npmRepository });
   return { overview, npmRepository };
+}
+
+export interface PackagesData {
+  signedIn: boolean;
+  selected: TenantSummary | null;
+  overview: TenantOverview | null;
+}
+
+export async function getPackagesDataAction(tenantId?: string): Promise<PackagesData> {
+  const user = await getSessionUser(getClientConfig().authApiUrl);
+  if (!user) {
+    return { signedIn: false, selected: null, overview: null };
+  }
+  const tenants = await listUserTenants(user.uid);
+  const selected = tenants.find((tenant) => tenant.id === tenantId) ?? tenants[0] ?? null;
+  if (!selected) {
+    return { signedIn: true, selected: null, overview: null };
+  }
+  const { overview } = await getTenantSettingsDataAction(selected.id);
+  return { signedIn: true, selected, overview };
 }
 
 export interface TenantProfileData {
