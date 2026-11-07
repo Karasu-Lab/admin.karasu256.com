@@ -31,6 +31,10 @@ export async function registerRepository(input: RegisteredRepository): Promise<v
   ]);
 }
 
+export async function unregisterRepository(repositoryId: number): Promise<void> {
+  await runAdminDb('DELETE FROM repositories WHERE repository_id = ?', [repositoryId]);
+}
+
 export function repositoryRemote(repositoryFullName: string): string {
   return `https://github.com/${repositoryFullName}.git`;
 }
