@@ -3,6 +3,7 @@ import { githubInstallationWebhookPayloadSchema, githubPushWebhookPayloadSchema 
 import { applyInstallationWebhook, evaluatePushWebhook } from '@/lib/api-auth';
 import { getTenantNpmRepository } from '@/lib/npm-repository';
 import { finishPackageUpdate, startPackageUpdate } from '@/lib/update-events';
+import { listTenantWebhookSecrets } from '@/lib/webhook-secret';
 import { runPointerUpdate, type PointerUpdateResult } from '@/lib/webhook-automation';
 
 export const runtime = 'nodejs';
@@ -23,10 +24,11 @@ function signatureValid(secret: string, body: string, header: string | null): bo
 }
 
 export async function POST(request: Request): Promise<Response> {
-  const secret = process.env.GH_APP_WEBHOOK_SECRET;
-  if (!secret) return Response.json({ error: 'webhook_not_configured' }, { status: 503 });
   const body = await request.text();
-  if (!signatureValid(secret, body, request.headers.get('x-hub-signature-256'))) {
+  const secrets = await listTenantWebhookSecrets();
+  if (secrets.length === 0) return Response.json({ error: 'webhook_not_configured' }, { status: 503 });
+  const signature = request.headers.get('x-hub-signature-256');
+  if (!secrets.some(({ secret }) => signatureValid(secret, body, signature))) {
     return Response.json({ error: 'invalid_signature' }, { status: 401 });
   }
   const event = request.headers.get('x-github-event');

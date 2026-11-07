@@ -13,6 +13,7 @@
     "@karasu-lab/types": "0.1.0-3099873",
     "@karasu-lab/ui": "0.1.0-fded8d2",
     "@karasu-lab/utils": "0.1.0-11f53a9",
+    "better-auth": "^1.7.12",
     "clsx": "^2.1.1",
     "framer-motion": "^12.38.0",
     "isomorphic-git": "^1.44.11",
