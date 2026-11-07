@@ -1,75 +1,196 @@
+import Link from 'next/link';
 import { getTranslations } from 'next-intl/server';
-import { Card, CardContent, CardHeader, CardTitle } from '@karasu-lab/ui';
+import { Badge, Button, Card, CardContent, CardHeader, CardTitle } from '@karasu-lab/ui';
+import { getSessionUser } from '@karasu-lab/utils/server';
 import { NavSidebar } from '@/components/nav-sidebar';
-import { DeploymentsSection } from '@/components/deployments-section';
-import { apiFetch } from '@/lib/api-fetch';
-import { VercelConnectionStore, VercelDeploymentsClient } from '@/lib/vercel';
+import { RepositoryImport } from '@/components/repository-import';
+import { getTenantOverview, listTenantRepositories, listUserTenants } from '@/lib/api-auth';
+import { getClientConfig } from '@/lib/client-config';
+import { getTenantNpmRepository, type TenantNpmRepository } from '@/lib/npm-repository';
+import type { InstallationRepository, TenantOverview, TenantSummary } from '@/lib/tenants';
 
-interface ContainerInfo {
-  id: string;
-  names: string[];
-  image: string;
-  status: string;
-  state: string;
-  ports: unknown[];
+interface Step {
+  done: boolean;
+  title: string;
+  description: string;
+  href?: string;
+  hrefLabel?: string;
 }
 
-interface ImageInfo {
-  Id: string;
-  RepoTags: string[];
-}
-
-async function fetchContainers(): Promise<ContainerInfo[]> {
-  try {
-    const res = await apiFetch('/api/containers', { cache: 'no-store' });
-    if (!res.ok) return [];
-    const data: unknown = await res.json();
-    return Array.isArray(data) ? (data as ContainerInfo[]) : [];
-  } catch {
-    return [];
-  }
-}
-
-async function fetchImages(): Promise<ImageInfo[]> {
-  try {
-    const res = await apiFetch('/api/images', { cache: 'no-store' });
-    if (!res.ok) return [];
-    const data: unknown = await res.json();
-    return Array.isArray(data) ? (data as ImageInfo[]) : [];
-  } catch {
-    return [];
-  }
-}
-
-export default async function DashboardPage() {
+export default async function Home({
+  searchParams,
+}: {
+  searchParams?: Promise<{ tenant?: string }>;
+}) {
   const t = await getTranslations('Dashboard');
-  const [containers, images, vercelConnection] = await Promise.all([fetchContainers(), fetchImages(), new VercelConnectionStore().get()]);
-  const deployments = vercelConnection ? await new VercelDeploymentsClient().listRecent(vercelConnection) : null;
+  const tOnboarding = await getTranslations('Onboarding');
+  const user = await getSessionUser(getClientConfig().authApiUrl);
+
+  if (!user) {
+    return (
+      <div className="flex min-h-screen">
+        <NavSidebar />
+        <main className="flex-1 p-6">
+          <h1 className="text-2xl font-bold">{t('title')}</h1>
+          <p className="mt-4 text-muted-foreground">{t('signInRequired')}</p>
+        </main>
+      </div>
+    );
+  }
+
+  let tenants: TenantSummary[] = [];
+  let tenantsError: string | null = null;
+  try {
+    tenants = await listUserTenants(user.uid);
+  } catch (error) {
+    tenantsError = error instanceof Error ? error.message : String(error);
+  }
+
+  const params = (await searchParams) ?? {};
+  const selected = tenants.find((tenant) => tenant.id === params.tenant) ?? tenants[0] ?? null;
+
+  let overview: TenantOverview | null = null;
+  let overviewError: string | null = null;
+  let npmRepository: TenantNpmRepository | null = null;
+  let repositories: InstallationRepository[] = [];
+  let repositoriesError: string | null = null;
+  if (selected) {
+    try {
+      overview = await getTenantOverview(selected.id, user.uid);
+    } catch (error) {
+      overviewError = error instanceof Error ? error.message : String(error);
+    }
+    try {
+      npmRepository = await getTenantNpmRepository(selected.id);
+    } catch (error) {
+      overviewError = error instanceof Error ? error.message : String(error);
+    }
+    if (overview?.installation) {
+      try {
+        repositories = await listTenantRepositories(selected.id);
+      } catch (error) {
+        repositoriesError = error instanceof Error ? error.message : String(error);
+      }
+    }
+  }
+
+  const settingsHref = selected ? `/tenants/${selected.id}/settings` : undefined;
+  const steps: Step[] = [
+    {
+      done: Boolean(selected),
+      title: tOnboarding('tenant'),
+      description: tOnboarding('tenantDescription'),
+    },
+    {
+      done: Boolean(overview?.installation),
+      title: tOnboarding('bot'),
+      description: tOnboarding('botDescription'),
+      href: settingsHref,
+      hrefLabel: tOnboarding('startSetup'),
+    },
+    {
+      done: Boolean(overview?.signingKeys.some((key) => key.enabled && key.registeredOnGitHub)),
+      title: tOnboarding('signingKey'),
+      description: tOnboarding('signingKeyDescription'),
+      href: settingsHref,
+      hrefLabel: tOnboarding('startSetup'),
+    },
+    {
+      done: Boolean(npmRepository?.npmRepositoryFullName),
+      title: tOnboarding('npmRepository'),
+      description: tOnboarding('npmRepositoryDescription'),
+      href: selected ? `/npm-setup?tenant=${selected.id}` : undefined,
+      hrefLabel: tOnboarding('startSetup'),
+    },
+    {
+      done: Boolean(npmRepository?.workflowTemplateRepositoryFullName),
+      title: tOnboarding('templateRepository'),
+      description: tOnboarding('templateRepositoryDescription'),
+      href: selected ? `/npm-setup?tenant=${selected.id}` : undefined,
+      hrefLabel: tOnboarding('startSetup'),
+    },
+    {
+      done: Boolean(overview?.installation),
+      title: tOnboarding('webhook'),
+      description: tOnboarding('webhookDescription'),
+    },
+    {
+      done: Boolean(overview && overview.linkedPackages.length > 0),
+      title: tOnboarding('package'),
+      description: tOnboarding('packageDescription'),
+      href: settingsHref,
+      hrefLabel: tOnboarding('openSettings'),
+    },
+  ];
 
   return (
-    <div className="flex flex-1">
+    <div className="flex min-h-screen">
       <NavSidebar />
-      <main className="flex-1 p-6 space-y-6">
+      <main className="flex-1 space-y-6 p-6">
         <h1 className="text-2xl font-bold">{t('title')}</h1>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        {tenantsError && (
           <Card>
-            <CardHeader>
-              <CardTitle className="text-base">{t('runningContainers')}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-3xl font-bold">{containers.filter((c) => c.state === 'running').length}</p>
+            <CardContent className="pt-6">
+              <p className="text-sm text-destructive">
+                {t('loadError')}: {tenantsError}
+              </p>
             </CardContent>
           </Card>
+        )}
+        {!tenantsError && tenants.length === 0 && <p className="text-muted-foreground">{t('noTenants')}</p>}
+        {tenants.length > 1 && (
+          <div className="flex flex-wrap gap-2">
+            {tenants.map((tenant) => (
+              <Button
+                key={tenant.id}
+                variant={tenant.id === selected?.id ? 'default' : 'outline'}
+                render={<Link href={`/?tenant=${tenant.id}`} />}
+              >
+                {tenant.name}
+              </Button>
+            ))}
+          </div>
+        )}
+        {selected && (
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">{t('availableImages')}</CardTitle>
+              <CardTitle>
+                {tOnboarding('title')} — {selected.name}
+              </CardTitle>
             </CardHeader>
-            <CardContent>
-              <p className="text-3xl font-bold">{images.length}</p>
+            <CardContent className="space-y-3">
+              {overviewError && (
+                <p className="text-sm text-destructive">
+                  {t('loadError')}: {overviewError}
+                </p>
+              )}
+              {steps.map((step) => (
+                <div key={step.title} className="flex flex-wrap items-center gap-3 rounded-md border p-3">
+                  <Badge variant={step.done ? 'default' : 'secondary'}>
+                    {step.done ? tOnboarding('completed') : tOnboarding('notCompleted')}
+                  </Badge>
+                  <div className="min-w-0">
+                    <p className="font-medium">{step.title}</p>
+                    <p className="text-sm text-muted-foreground">{step.description}</p>
+                  </div>
+                  {!step.done && step.href && (
+                    <Button variant="outline" className="ml-auto" render={<Link href={step.href} />}>
+                      {step.hrefLabel}
+                    </Button>
+                  )}
+                </div>
+              ))}
             </CardContent>
           </Card>
-        </div>
-        <DeploymentsSection connected={vercelConnection !== null} deployments={deployments} />
+        )}
+        {selected && overview?.installation && (
+          <RepositoryImport
+            organizationId={selected.id}
+            repositories={repositories}
+            linkedFullNames={overview.linkedPackages.map((linked) => linked.repositoryFullName)}
+            loadError={repositoriesError}
+          />
+        )}
       </main>
     </div>
   );

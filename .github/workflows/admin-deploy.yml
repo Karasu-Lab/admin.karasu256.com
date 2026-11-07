@@ -1,0 +1,159 @@
+name: Admin Deploy
+
+on:
+  push:
+    branches: ["**"]
+  workflow_dispatch:
+
+# Deployment itself lives in Karasu-Lab/WorkersDeploy: it deploys this
+# app standalone from this repository, detects the Next.js project,
+# builds it with OpenNext, and deploys it to Cloudflare Workers.
+#
+# Before any deploy, the d1 job sets up the Cloudflare D1 database
+# this app binds as ADMIN_DB: it creates the database named `admin`
+# with the repository's D1 API token when it is missing, writes the
+# binding (with the real database_id) into wrangler.jsonc, applies
+# the migrations under migrations/ and commits the binding back to
+# the branch. A push made by the workflow token does not start a new
+# run on its own, so when the binding is committed the job dispatches
+# a fresh run for the pushed commit and this run skips the deploy;
+# that run then deploys with the binding in place.
+
+jobs:
+  d1:
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+      contents: write
+    outputs:
+      binding_pushed: ${{ steps.binding.outputs.binding_pushed }}
+    env:
+      CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLPUDFLARE_D1_API_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Find or create the admin D1 database
+        id: database
+        run: |
+          list=$(curl -sS -G "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/d1/database" \
+            -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
+            --data-urlencode "name=admin" --data-urlencode "per_page=50")
+          if [ "$(echo "$list" | jq -r '.success')" != "true" ]; then
+            echo "$list" | jq .
+            echo "::error::Listing the D1 databases failed"
+            exit 1
+          fi
+          database_id=$(echo "$list" | jq -r '[.result[] | select(.name == "admin")][0].uuid // empty')
+          if [ -z "$database_id" ]; then
+            created=$(curl -sS -X POST "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/d1/database" \
+              -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
+              -H "Content-Type: application/json" \
+              --data '{"name":"admin"}')
+            if [ "$(echo "$created" | jq -r '.success')" != "true" ]; then
+              echo "$created" | jq .
+              echo "::error::Creating the admin D1 database failed"
+              exit 1
+            fi
+            database_id=$(echo "$created" | jq -r '.result.uuid // empty')
+            echo "Created the admin D1 database."
+          fi
+          if [ -z "$database_id" ]; then
+            echo "::error::Could not resolve the admin D1 database id"
+            exit 1
+          fi
+          echo "database_id=$database_id" >> "$GITHUB_OUTPUT"
+          echo "Admin D1 database id: $database_id"
+      - name: Write the ADMIN_DB binding into wrangler.jsonc
+        env:
+          DATABASE_ID: ${{ steps.database.outputs.database_id }}
+        run: |
+          node <<'EOF'
+          const { readFileSync, writeFileSync } = require('node:fs');
+          const binding = [
+            {
+              binding: 'ADMIN_DB',
+              database_id: process.env.DATABASE_ID,
+              database_name: 'admin',
+              migrations_dir: 'migrations',
+            },
+          ];
+          const sortKeys = (value) => {
+            if (Array.isArray(value)) return value.map(sortKeys);
+            if (value !== null && typeof value === 'object') {
+              return Object.fromEntries(
+                Object.keys(value)
+                  .sort()
+                  .map((key) => [key, sortKeys(value[key])]),
+              );
+            }
+            return value;
+          };
+          const config = JSON.parse(readFileSync('wrangler.jsonc', 'utf8'));
+          config.d1_databases = binding;
+          config.env.preview.d1_databases = binding;
+          config.previews.d1_databases = binding;
+          writeFileSync('wrangler.jsonc', `${JSON.stringify(sortKeys(config))}\n`);
+          EOF
+      - name: Apply the D1 migrations
+        run: npx -y wrangler@4.155.0 d1 migrations apply ADMIN_DB --remote
+      - name: Commit the ADMIN_DB binding
+        id: binding
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if git diff --quiet -- wrangler.jsonc; then
+            echo "binding_pushed=false" >> "$GITHUB_OUTPUT"
+            echo "wrangler.jsonc already carries the ADMIN_DB binding for this database; deploying in this run."
+          else
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add wrangler.jsonc
+            git commit -m "chore: add the admin D1 database binding"
+            git push origin "HEAD:$GITHUB_REF_NAME"
+            gh workflow run admin-deploy.yml --ref "$GITHUB_REF_NAME"
+            echo "binding_pushed=true" >> "$GITHUB_OUTPUT"
+            echo "Committed the ADMIN_DB binding and dispatched a run for the pushed commit; this run skips the deploy."
+          fi
+
+  deploy:
+    needs: d1
+    if: github.ref_name == 'main' && needs.d1.outputs.binding_pushed != 'true'
+    environment: production
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: read
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+      NODE_AUTH_TOKEN: ${{ secrets.NODE_AUTH_TOKEN || secrets.GITHUB_TOKEN }}
+      API_URL: ${{ vars.API_URL }}
+    steps:
+      - name: Deploy the worker
+        uses: Karasu-Lab/WorkersDeploy@v1
+        with:
+          mode: production
+          worker-name: admin-karasu256-com
+
+  preview:
+    needs: d1
+    if: github.ref_name != 'main' && needs.d1.outputs.binding_pushed != 'true'
+    environment: preview
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: read
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+      NODE_AUTH_TOKEN: ${{ secrets.NODE_AUTH_TOKEN || secrets.GITHUB_TOKEN }}
+      API_URL: ${{ vars.API_URL }}
+    steps:
+      - name: Deploy the worker
+        uses: Karasu-Lab/WorkersDeploy@v1
+        with:
+          mode: preview
+          worker-name: admin-karasu256-com

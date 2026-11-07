@@ -5,6 +5,7 @@ import { PopUpMenuProvider, SessionProvider, TooltipProvider } from '@karasu-lab
 import { geistSans, geistMono, notoSansJP } from '@karasu-lab/ui/fonts';
 import { getSessionUser } from '@karasu-lab/utils/server';
 import { Header } from '@/components/header';
+import { getClientConfig } from '@/lib/client-config';
 import { GithubCorner } from '@/components/github-corner';
 import './globals.css';
 
@@ -23,7 +24,8 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const locale = await getLocale();
   const messages = await getMessages();
-  const sessionUser = await getSessionUser(process.env.NEXT_PUBLIC_AUTH_API_URL);
+  const clientConfig = getClientConfig();
+  const sessionUser = await getSessionUser(clientConfig.authApiUrl);
   const initialUser = sessionUser
     ? { uid: sessionUser.uid, iconUrl: sessionUser.image, displayName: sessionUser.name, email: sessionUser.email }
     : null;
@@ -32,7 +34,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     <html lang={locale} className={`${geistSans.variable} ${geistMono.variable} ${notoSansJP.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col">
         <NextIntlClientProvider messages={messages}>
-          <SessionProvider baseURL={process.env.NEXT_PUBLIC_AUTH_API_URL} initialUser={initialUser}>
+          <SessionProvider baseURL={clientConfig.authApiUrl} initialUser={initialUser}>
             <PopUpMenuProvider>
               <TooltipProvider>
                 <Header />
