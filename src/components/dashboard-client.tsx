@@ -33,15 +33,9 @@ export function DashboardClient({ tenantId }: { tenantId?: string }) {
     void load();
   }, [load]);
 
-  if (!data) {
-    return (
-      <main className="flex-1 p-6">
-        <h1 className="text-2xl font-bold">{t('title')}</h1>
-      </main>
-    );
-  }
+  const loading = !data;
 
-  if (!data.signedIn) {
+  if (data && !data.signedIn) {
     return (
       <main className="flex-1 p-6">
         <h1 className="text-2xl font-bold">{t('title')}</h1>
@@ -50,7 +44,11 @@ export function DashboardClient({ tenantId }: { tenantId?: string }) {
     );
   }
 
-  const { tenants, selected, overview, npmRepository, repositories } = data;
+  const tenants = data?.tenants ?? [];
+  const selected = data?.selected ?? null;
+  const overview = data?.overview ?? null;
+  const npmRepository = data?.npmRepository ?? null;
+  const repositories = data?.repositories ?? [];
   const settingsHref = selected ? `/tenants/${selected.id}/tenant-settings` : undefined;
   const steps: Step[] = [
     {
@@ -103,8 +101,8 @@ export function DashboardClient({ tenantId }: { tenantId?: string }) {
   return (
     <main className="flex-1 space-y-6 p-6">
       <h1 className="text-2xl font-bold">{t('title')}</h1>
-      {tenants.length === 0 && <p className="text-muted-foreground">{t('noTenants')}</p>}
-      {tenants.length > 1 && (
+      {!loading && tenants.length === 0 && <p className="text-muted-foreground">{t('noTenants')}</p>}
+      {!loading && tenants.length > 1 && (
         <div className="flex flex-wrap gap-2">
           {tenants.map((tenant) => (
             <Button
@@ -117,14 +115,15 @@ export function DashboardClient({ tenantId }: { tenantId?: string }) {
           ))}
         </div>
       )}
-      {selected && (
+      {(loading || selected) && (
         <Card>
           <CardHeader>
             <div className="flex flex-wrap items-center gap-3">
               <CardTitle>
-                {tOnboarding('title')} — {selected.name}
+                {tOnboarding('title')}
+                {selected ? ` — ${selected.name}` : ''}
               </CardTitle>
-              {settingsHref && (
+              {!loading && settingsHref && (
                 <Button variant="outline" className="ml-auto" render={<Link href={settingsHref} />}>
                   {tOnboarding('openSettings')}
                 </Button>
@@ -134,14 +133,16 @@ export function DashboardClient({ tenantId }: { tenantId?: string }) {
           <CardContent className="space-y-3">
             {steps.map((step) => (
               <div key={step.title} className="flex flex-wrap items-center gap-3 rounded-md border p-3">
-                <Badge variant={step.done ? 'default' : 'secondary'}>
-                  {step.done ? tOnboarding('completed') : tOnboarding('notCompleted')}
-                </Badge>
+                {!loading && (
+                  <Badge variant={step.done ? 'default' : 'secondary'}>
+                    {step.done ? tOnboarding('completed') : tOnboarding('notCompleted')}
+                  </Badge>
+                )}
                 <div className="min-w-0">
                   <p className="font-medium">{step.title}</p>
                   <p className="text-sm text-muted-foreground">{step.description}</p>
                 </div>
-                {!step.done && step.href && (
+                {!loading && !step.done && step.href && (
                   <Button variant="outline" className="ml-auto" render={<Link href={step.href} />}>
                     {step.hrefLabel}
                   </Button>
@@ -151,7 +152,8 @@ export function DashboardClient({ tenantId }: { tenantId?: string }) {
           </CardContent>
         </Card>
       )}
-      {selected && overview?.installation && (
+      {loading && tenantId && <RepositoryImport organizationId={tenantId} repositories={[]} linkedFullNames={[]} disabled />}
+      {!loading && selected && overview?.installation && (
         <RepositoryImport
           organizationId={selected.id}
           repositories={repositories}
