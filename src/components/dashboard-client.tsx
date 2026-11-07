@@ -3,8 +3,8 @@
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
-import { Badge, Button, Card, CardContent, CardHeader, CardTitle, toast } from '@karasu-lab/ui';
-import { getDashboardDataAction, type DashboardData } from '@/app/actions';
+import { Badge, Button, Card, CardContent, CardHeader, CardTitle, Spinner, toast } from '@karasu-lab/ui';
+import { getDashboardDataAction, markSetupCompletedAction, type DashboardData } from '@/app/actions';
 import { RepositoryImport } from './repository-import';
 
 interface Step {
@@ -19,6 +19,7 @@ export function DashboardClient({ tenantId }: { tenantId?: string }) {
   const t = useTranslations('Dashboard');
   const tOnboarding = useTranslations('Onboarding');
   const [data, setData] = useState<DashboardData | null>(null);
+  const [marking, setMarking] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -46,6 +47,7 @@ export function DashboardClient({ tenantId }: { tenantId?: string }) {
 
   const tenants = data?.tenants ?? [];
   const selected = data?.selected ?? null;
+  const setupCompleted = data?.setupCompleted ?? false;
   const overview = data?.overview ?? null;
   const npmRepository = data?.npmRepository ?? null;
   const repositories = data?.repositories ?? [];
@@ -100,6 +102,20 @@ export function DashboardClient({ tenantId }: { tenantId?: string }) {
       hrefLabel: tOnboarding('openPackages'),
     },
   ];
+  const allStepsDone = steps.every((step) => step.done);
+
+  const markCompleted = async () => {
+    if (!selected) return;
+    setMarking(true);
+    try {
+      await markSetupCompletedAction(selected.id);
+      await load();
+    } catch (caught) {
+      toast.error(caught instanceof Error ? caught.message : String(caught));
+    } finally {
+      setMarking(false);
+    }
+  };
 
   return (
     <main className="flex-1 space-y-6 p-6">
@@ -118,7 +134,7 @@ export function DashboardClient({ tenantId }: { tenantId?: string }) {
           ))}
         </div>
       )}
-      {(loading || selected) && (
+      {(loading || selected) && !setupCompleted && (
         <Card>
           <CardHeader>
             <div className="flex flex-wrap items-center gap-3">
@@ -134,7 +150,7 @@ export function DashboardClient({ tenantId }: { tenantId?: string }) {
             </div>
           </CardHeader>
           <CardContent className="space-y-3">
-            {steps.map((step) => (
+            {steps.map((step, index) => (
               <div key={step.title} className="flex flex-wrap items-center gap-3 rounded-md border p-3">
                 {!loading && (
                   <Badge variant={step.done ? 'default' : 'secondary'}>
@@ -148,6 +164,12 @@ export function DashboardClient({ tenantId }: { tenantId?: string }) {
                 {!loading && !step.done && step.href && (
                   <Button variant="outline" className="ml-auto" render={<Link href={step.href} />}>
                     {step.hrefLabel}
+                  </Button>
+                )}
+                {!loading && index === steps.length - 1 && (
+                  <Button className={!step.done && step.href ? undefined : 'ml-auto'} disabled={!allStepsDone || marking} onClick={markCompleted}>
+                    {marking && <Spinner />}
+                    {marking ? tOnboarding('markingCompleted') : tOnboarding('markCompleted')}
                   </Button>
                 )}
               </div>
