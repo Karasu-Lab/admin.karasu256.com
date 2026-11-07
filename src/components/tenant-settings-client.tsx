@@ -21,8 +21,7 @@ import {
 import { getGithubAppInstallUrlAction, getTenantSettingsDataAction, uninstallBotAction, type TenantSettingsData } from '@/app/actions';
 import { requestProviderLinkUrl } from '@/lib/provider-link';
 import { DeleteTenantSection } from './delete-tenant-section';
-import { SigningKeyAuthorizationSection } from './signing-key-authorization-section';
-import { SigningKeysSection } from './signing-keys-section';
+
 
 export function TenantSettingsClient({
   tenantId,
@@ -163,8 +162,6 @@ export function TenantSettingsClient({
               )}
             </CardContent>
           </Card>
-          <SigningKeyAuthorizationSection authApiUrl={authApiUrl} settingsUrl={settingsUrl} disabled={loading} />
-          <SigningKeysSection authApiUrl={authApiUrl} keys={overview?.signingKeys ?? []} disabled={loading} onRefresh={load} />
           <DeleteTenantSection
             organizationId={tenantId}
             organizationName={overview?.organization.name ?? ''}
