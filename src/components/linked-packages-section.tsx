@@ -82,12 +82,9 @@ export function LinkedPackagesSection({
         {packages.map((linkedPackage) => (
           <div key={linkedPackage.id} className="space-y-2 rounded-md border p-4">
             <div className="min-w-0 font-medium break-words">{linkedPackage.repositoryFullName}</div>
-            <div className="flex items-center gap-2">
-              <Button variant="destructive" disabled={disabled} onClick={() => setUnlinkTarget(linkedPackage)}>
-                {t('unlink')}
-              </Button>
-              <span className="ml-auto flex items-center gap-2">
-                <span className="text-sm">{t('autoUpdate')}</span>
+            <div className="flex w-full items-center">
+              <span className="text-sm">{t('autoUpdate')}</span>
+              <span className="ml-auto flex items-center">
                 <Switch
                   checked={linkedPackage.enabled}
                   disabled={disabled || busyId === linkedPackage.id}
@@ -95,6 +92,9 @@ export function LinkedPackagesSection({
                 />
               </span>
             </div>
+            <Button variant="destructive" className="w-full" disabled={disabled} onClick={() => setUnlinkTarget(linkedPackage)}>
+              {t('unlink')}
+            </Button>
           </div>
         ))}
       </CardContent>
