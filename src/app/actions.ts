@@ -11,6 +11,7 @@ import {
   listTenantRepositories,
   listUserTenants,
   setTenantPackageEnabled,
+  uninstallTenantBot,
 } from '@/lib/api-auth';
 import { getClientConfig } from '@/lib/client-config';
 import { getRepositoryAccess, requestSignedCommit } from '@/lib/git-api';
@@ -372,6 +373,11 @@ export async function setPackageEnabledAction(input: {
 }): Promise<void> {
   const userId = await requireUserId();
   await setTenantPackageEnabled(input.organizationId, input.packageId, { userId, enabled: input.enabled });
+}
+
+export async function uninstallBotAction(organizationId: string): Promise<void> {
+  const userId = await requireUserId();
+  await uninstallTenantBot(organizationId, { userId });
 }
 
 export interface DashboardData {
