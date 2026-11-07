@@ -340,3 +340,14 @@ export async function getTenantSettingsDataAction(organizationId: string): Promi
   ]);
   return { overview, npmRepository };
 }
+
+export interface TenantProfileData {
+  name: string;
+  slug: string;
+}
+
+export async function getTenantProfileAction(organizationId: string): Promise<TenantProfileData> {
+  const userId = await requireUserId();
+  const overview = await getTenantOverview(organizationId, userId);
+  return { name: overview.organization.name, slug: overview.organization.slug };
+}

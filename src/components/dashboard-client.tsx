@@ -51,7 +51,7 @@ export function DashboardClient({ tenantId }: { tenantId?: string }) {
   }
 
   const { tenants, selected, overview, npmRepository, repositories } = data;
-  const settingsHref = selected ? `/tenants/${selected.id}/settings` : undefined;
+  const settingsHref = selected ? `/tenants/${selected.id}/tenant-settings` : undefined;
   const steps: Step[] = [
     {
       done: Boolean(selected),
@@ -120,9 +120,16 @@ export function DashboardClient({ tenantId }: { tenantId?: string }) {
       {selected && (
         <Card>
           <CardHeader>
-            <CardTitle>
-              {tOnboarding('title')} — {selected.name}
-            </CardTitle>
+            <div className="flex flex-wrap items-center gap-3">
+              <CardTitle>
+                {tOnboarding('title')} — {selected.name}
+              </CardTitle>
+              {settingsHref && (
+                <Button variant="outline" className="ml-auto" render={<Link href={settingsHref} />}>
+                  {tOnboarding('openSettings')}
+                </Button>
+              )}
+            </div>
           </CardHeader>
           <CardContent className="space-y-3">
             {steps.map((step) => (

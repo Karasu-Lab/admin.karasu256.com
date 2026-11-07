@@ -20,7 +20,7 @@ export function TenantMenuSection({
       {tenants.map((tenant) => (
         <DropdownMenuItem
           key={tenant.id}
-          render={<Link href={`/tenants/${tenant.id}/settings`} />}
+          render={<Link href={`/tenants/${tenant.id}/tenant-settings`} />}
         >
           {tenant.name}
         </DropdownMenuItem>
