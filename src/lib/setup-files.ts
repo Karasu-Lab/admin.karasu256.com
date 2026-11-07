@@ -423,7 +423,15 @@ if (failures > 0) process.exit(1);
 console.log("done");
 `;
 
+const NPM_PUBLISH_PROGRESS_COMMENTS = `{
+  "pointerUpdate": "Pointer update: {pullRequestUrl} bumps {npmRepository} to {commit} with auto-merge enabled. The publish workflow runs once the pointer update is merged.",
+  "published": "Published {packageName}@{version} to GitHub Packages.\\n\\nPublish workflow run: {workflowRunUrl}",
+  "publishFailed": "Publishing {packageName} at {commit} failed.\\n\\nPublish workflow run: {workflowRunUrl}"
+}
+`;
+
 export const NPM_REPOSITORY_FILES: SetupFile[] = [
   { path: '.github/workflows/publish.yml', content: NPM_PUBLISH_WORKFLOW },
   { path: 'scripts/publish.mjs', content: NPM_PUBLISH_SCRIPT },
+  { path: '.github/publish-progress-comments.json', content: NPM_PUBLISH_PROGRESS_COMMENTS },
 ];

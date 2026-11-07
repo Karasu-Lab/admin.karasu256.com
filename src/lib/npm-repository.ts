@@ -61,6 +61,14 @@ export async function getTenantNpmRepository(organizationId: string): Promise<Te
   return rows[0] ? toTenantNpmRepository(rows[0]) : null;
 }
 
+export async function getTenantNpmRepositoryByFullName(npmRepositoryFullName: string): Promise<TenantNpmRepository | null> {
+  const rows = await queryAdminDb<TenantNpmRepositoryRow>(
+    'SELECT organization_id, owner, npm_repository_name, workflow_template_repository_name, npm_repository_id, npm_repository_full_name, workflow_template_repository_id, workflow_template_repository_full_name, created_at, updated_at FROM tenant_npm_repository WHERE npm_repository_full_name = ?',
+    [npmRepositoryFullName]
+  );
+  return rows[0] ? toTenantNpmRepository(rows[0]) : null;
+}
+
 export async function deleteTenantNpmRepository(organizationId: string): Promise<void> {
   await runAdminDb('DELETE FROM tenant_npm_repository WHERE organization_id = ?', [organizationId]);
 }
