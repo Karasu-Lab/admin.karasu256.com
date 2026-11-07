@@ -3,8 +3,22 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { Card, CardContent, CardHeader, CardTitle, Switch, toast } from '@karasu-lab/ui';
-import { setPackageEnabledAction } from '@/app/actions';
+import {
+  Button,
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  Dialog,
+  DialogBackdrop,
+  DialogPopup,
+  DialogPortal,
+  DialogTitle,
+  Spinner,
+  Switch,
+  toast,
+} from '@karasu-lab/ui';
+import { setPackageEnabledAction, unlinkPackageAction } from '@/app/actions';
 import type { TenantLinkedPackage } from '@/lib/tenants';
 
 export function LinkedPackagesSection({
@@ -21,20 +35,40 @@ export function LinkedPackagesSection({
   const t = useTranslations('Packages');
   const router = useRouter();
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [unlinkTarget, setUnlinkTarget] = useState<TenantLinkedPackage | null>(null);
+  const [unlinking, setUnlinking] = useState(false);
+
+  const refresh = () => {
+    if (onRefresh) {
+      onRefresh();
+    } else {
+      router.refresh();
+    }
+  };
 
   const toggle = async (linkedPackage: TenantLinkedPackage, enabled: boolean) => {
     setBusyId(linkedPackage.id);
     try {
       await setPackageEnabledAction({ organizationId, packageId: linkedPackage.id, enabled });
-      if (onRefresh) {
-        onRefresh();
-      } else {
-        router.refresh();
-      }
+      refresh();
     } catch (caught) {
       toast.error(caught instanceof Error ? caught.message : String(caught));
     } finally {
       setBusyId(null);
+    }
+  };
+
+  const unlink = async () => {
+    if (!unlinkTarget) return;
+    setUnlinking(true);
+    try {
+      await unlinkPackageAction({ organizationId, packageId: unlinkTarget.id });
+      setUnlinkTarget(null);
+      refresh();
+    } catch (caught) {
+      toast.error(caught instanceof Error ? caught.message : String(caught));
+    } finally {
+      setUnlinking(false);
     }
   };
 
@@ -46,10 +80,10 @@ export function LinkedPackagesSection({
       <CardContent className="space-y-4">
         {packages.length === 0 && !disabled && <p className="text-sm text-muted-foreground">{t('empty')}</p>}
         {packages.map((linkedPackage) => (
-          <div key={linkedPackage.id} className="space-y-1 rounded-md border p-4">
+          <div key={linkedPackage.id} className="rounded-md border p-4">
             <div className="flex flex-wrap items-center gap-2">
               <span className="font-medium">{linkedPackage.repositoryFullName}</span>
-              <span className="ml-auto flex items-center gap-2 text-sm">
+              <span className="flex items-center gap-2 text-sm">
                 {t('autoUpdate')}
                 <Switch
                   checked={linkedPackage.enabled}
@@ -57,16 +91,33 @@ export function LinkedPackagesSection({
                   onCheckedChange={(enabled) => toggle(linkedPackage, enabled)}
                 />
               </span>
+              <Button variant="destructive" disabled={disabled} onClick={() => setUnlinkTarget(linkedPackage)}>
+                {t('unlink')}
+              </Button>
             </div>
-            <p className="text-sm text-muted-foreground">
-              {linkedPackage.submodulePath} · {t('versionNaming')}: {linkedPackage.versionNaming}
-            </p>
-            <p className="text-sm text-muted-foreground">
-              {t('lastSynced')}: {linkedPackage.lastSyncedSha ?? t('notSynced')}
-            </p>
           </div>
         ))}
       </CardContent>
+      <Dialog open={unlinkTarget !== null} onOpenChange={(open) => !open && setUnlinkTarget(null)}>
+        <DialogPortal>
+          <DialogBackdrop />
+          <DialogPopup className="space-y-4">
+            <DialogTitle>{t('unlinkConfirmTitle')}</DialogTitle>
+            <p className="text-sm text-muted-foreground">
+              {t('unlinkConfirmDescription', { repository: unlinkTarget?.repositoryFullName ?? '' })}
+            </p>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setUnlinkTarget(null)} disabled={unlinking}>
+                {t('cancel')}
+              </Button>
+              <Button variant="destructive" onClick={unlink} disabled={unlinking}>
+                {unlinking && <Spinner />}
+                {unlinking ? t('unlinking') : t('unlink')}
+              </Button>
+            </div>
+          </DialogPopup>
+        </DialogPortal>
+      </Dialog>
     </Card>
   );
 }

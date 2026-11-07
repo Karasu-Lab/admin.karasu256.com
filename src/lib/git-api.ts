@@ -1,6 +1,7 @@
 import 'server-only';
 import { MissingEnvError, signRequest } from '@karasu-lab/utils/server';
 import { getClientConfig } from './client-config';
+import type { InstallationRepository } from './tenants';
 
 export interface RepositoryAccess {
   repositoryId: number;
@@ -21,6 +22,8 @@ export interface SignedCommitRequest {
   fileChanges?: { path: string; content: string }[];
   gitlinkChanges?: { path: string; oid: string }[];
   gitmodulesAdditions?: { path: string; url: string; branch: string }[];
+  gitlinkRemovals?: string[];
+  gitmodulesRemovals?: string[];
   expectGitlinkPath?: string;
 }
 
@@ -82,6 +85,40 @@ export async function requestMirrorUploadUrl(input: {
     throw new Error(`git API request failed (${response.status}): ${detail.slice(0, 300)}`);
   }
   return (await response.json()) as MirrorUploadUrlResult;
+}
+
+export async function listTenantRepositories(organizationId: string): Promise<InstallationRepository[]> {
+  const data = await gitApiJson<{ repositories: InstallationRepository[] }>('/api/internal/repositories/list', { organizationId });
+  return data.repositories;
+}
+
+export async function createTenantRepository(input: {
+  organizationId: string;
+  targetType: 'Organization' | 'User';
+  targetLogin: string;
+  name: string;
+  description?: string;
+  private?: boolean;
+  isTemplate?: boolean;
+}): Promise<InstallationRepository> {
+  const data = await gitApiJson<{ repository: InstallationRepository }>('/api/internal/repositories/create', input);
+  return data.repository;
+}
+
+export async function createBotPullRequest(body: {
+  organizationId: string;
+  repositoryFullName: string;
+  title: string;
+  head: string;
+  base: string;
+  body?: string;
+  enableAutoMerge?: boolean;
+}): Promise<{ number: number; url: string; autoMergeEnabled: boolean }> {
+  const data = await gitApiJson<{ pullRequest: { number: number; url: string; autoMergeEnabled: boolean } }>(
+    '/api/internal/pull-requests/create',
+    body
+  );
+  return data.pullRequest;
 }
 
 export async function requestSignedCommit(input: SignedCommitRequest): Promise<SignedCommitResult> {

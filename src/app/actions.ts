@@ -3,19 +3,17 @@
 import { getSessionUser } from '@karasu-lab/utils/server';
 import { DEFAULT_VERSION_NAMING_PATTERN } from '@karasu-lab/types/shared';
 import {
-  createBotPullRequest,
-  createTenantRepository,
   getInstallationToken,
   getTenantOverview,
   linkTenantPackage,
-  listTenantRepositories,
   listUserTenants,
   setTenantPackageEnabled,
   uninstallTenantBot,
+  unlinkTenantPackage,
   getGithubAppInstallUrl,
 } from '@/lib/api-auth';
 import { getClientConfig } from '@/lib/client-config';
-import { getRepositoryAccess, requestSignedCommit } from '@/lib/git-api';
+import { createBotPullRequest, createTenantRepository, getRepositoryAccess, listTenantRepositories, requestSignedCommit } from '@/lib/git-api';
 import { seedMirrorIfNeeded } from '@/lib/mirror-seed';
 import {
   deleteTenantNpmRepository,
@@ -57,6 +55,7 @@ async function createOrReuseRepository(input: {
   organizationId: string;
   userId: string;
   owner: string;
+  targetType: 'Organization' | 'User';
   name: string;
   isTemplate?: boolean;
   knownRepositories: InstallationRepository[];
@@ -64,8 +63,10 @@ async function createOrReuseRepository(input: {
   const existing = findExistingRepository(input.knownRepositories, input.owner, input.name);
   if (existing) return { repository: requireReusableRepository(existing), outcome: 'overwritten' };
   try {
-    const repository = await createTenantRepository(input.organizationId, {
-      userId: input.userId,
+    const repository = await createTenantRepository({
+      organizationId: input.organizationId,
+      targetType: input.targetType,
+      targetLogin: input.owner,
       name: input.name,
       private: false,
       isTemplate: input.isTemplate,
@@ -95,6 +96,7 @@ export async function startNpmSetupAction(input: {
   const signingUserId = overview.installation.installedByUserId;
   if (!signingUserId) throw new Error('signing_user_unknown');
   const owner = overview.installation.targetLogin;
+  const targetType = overview.installation.targetType === 'organization' ? 'Organization' : 'User';
   await saveTenantNpmRepository({
     organizationId: input.organizationId,
     owner,
@@ -106,6 +108,7 @@ export async function startNpmSetupAction(input: {
     organizationId: input.organizationId,
     userId,
     owner,
+    targetType,
     name: input.npmRepositoryName,
     knownRepositories,
   });
@@ -114,6 +117,7 @@ export async function startNpmSetupAction(input: {
     organizationId: input.organizationId,
     userId,
     owner,
+    targetType,
     name: input.templateRepositoryName,
     isTemplate: true,
     knownRepositories,
@@ -361,17 +365,18 @@ export async function linkPackageAction(input: {
       { path: submodulePath, url: repositoryRemote(input.repositoryFullName), branch: input.defaultBranch },
     ],
   });
-  if (addResult.outcome !== 'pushed') {
+  if (addResult.outcome === 'pushed') {
+    await createBotPullRequest({
+      organizationId: input.organizationId,
+      repositoryFullName: npmFullName,
+      title: `Add ${repositoryName} as a package`,
+      head: addBranch,
+      base: 'main',
+      enableAutoMerge: true,
+    });
+  } else if (addResult.outcome !== 'no_changes' && addResult.outcome !== 'already_synced') {
     throw new Error(`npm_repository_update_${addResult.outcome}`);
   }
-  await createBotPullRequest({
-    organizationId: input.organizationId,
-    repositoryFullName: npmFullName,
-    title: `Add ${repositoryName} as a package`,
-    head: addBranch,
-    base: 'main',
-    enableAutoMerge: true,
-  });
 
   await linkTenantPackage(input.organizationId, {
     userId,
@@ -390,6 +395,51 @@ export async function setPackageEnabledAction(input: {
 }): Promise<void> {
   const userId = await requireUserId();
   await setTenantPackageEnabled(input.organizationId, input.packageId, { userId, enabled: input.enabled });
+}
+
+export async function unlinkPackageAction(input: { organizationId: string; packageId: string }): Promise<void> {
+  const userId = await requireUserId();
+  const overview = await getTenantOverview(input.organizationId, userId);
+  if (overview.organization.role !== 'owner' && overview.organization.role !== 'admin') {
+    throw new Error('tenant_setup_role_required');
+  }
+  if (!overview.installation) throw new Error('github_app_not_installed');
+  const signerUserId = overview.installation.installedByUserId;
+  if (!signerUserId) throw new Error('signing_user_unknown');
+  const linked = overview.linkedPackages.find((entry) => entry.id === input.packageId);
+  if (!linked) throw new Error('linked_package_not_found');
+  const npmRepository = await getTenantNpmRepository(input.organizationId);
+  if (!npmRepository?.npmRepositoryFullName || npmRepository.npmRepositoryId === null) {
+    throw new Error('npm_not_configured');
+  }
+  const npmFullName = npmRepository.npmRepositoryFullName;
+  const repositoryName = linked.repositoryFullName.split('/')[1] ?? linked.repositoryFullName;
+  const removeBranch = uniqueBranchName(`feat/remove-${repositoryName}-package`);
+  await seedMirrorIfNeeded({ repositoryId: npmRepository.npmRepositoryId, repositoryFullName: npmFullName });
+  const removeResult = await requestSignedCommit({
+    organizationId: input.organizationId,
+    signingUserId: signerUserId,
+    repositoryId: npmRepository.npmRepositoryId,
+    repositoryFullName: npmFullName,
+    branch: removeBranch,
+    baseBranch: 'main',
+    message: `feat: remove ${linked.repositoryFullName} as a package`,
+    gitlinkRemovals: [linked.submodulePath],
+    gitmodulesRemovals: [linked.submodulePath],
+  });
+  if (removeResult.outcome === 'pushed') {
+    await createBotPullRequest({
+      organizationId: input.organizationId,
+      repositoryFullName: npmFullName,
+      title: `Remove ${repositoryName} as a package`,
+      head: removeBranch,
+      base: 'main',
+      enableAutoMerge: true,
+    });
+  } else if (removeResult.outcome !== 'no_changes' && removeResult.outcome !== 'already_synced') {
+    throw new Error(`npm_repository_update_${removeResult.outcome}`);
+  }
+  await unlinkTenantPackage(input.organizationId, input.packageId, { userId });
 }
 
 export async function getGithubAppInstallUrlAction(): Promise<string> {
