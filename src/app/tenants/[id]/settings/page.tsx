@@ -1,12 +1,9 @@
-import { TenantSettingsClient } from '@/components/tenant-settings-client';
+import { TenantProfileClient } from '@/components/tenant-profile-client';
 import { getClientConfig } from '@/lib/client-config';
 
-export default async function TenantSettingsPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function TenantProfilePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const clientConfig = getClientConfig();
-  const authApiUrl = clientConfig.authApiUrl;
-  const settingsUrl = `${clientConfig.appUrl}/tenants/${id}/settings`;
-  const installUrl = `${authApiUrl}/api/github-app/install?organizationId=${encodeURIComponent(id)}&returnTo=${encodeURIComponent(settingsUrl)}`;
 
-  return <TenantSettingsClient tenantId={id} authApiUrl={authApiUrl} settingsUrl={settingsUrl} installUrl={installUrl} />;
+  return <TenantProfileClient tenantId={id} authApiUrl={clientConfig.authApiUrl} />;
 }

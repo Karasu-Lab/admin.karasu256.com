@@ -51,7 +51,7 @@ export function DashboardClient({ tenantId }: { tenantId?: string }) {
   }
 
   const { tenants, selected, overview, npmRepository, repositories } = data;
-  const settingsHref = selected ? `/tenants/${selected.id}/settings` : undefined;
+  const settingsHref = selected ? `/tenants/${selected.id}/tenant-settings` : undefined;
   const steps: Step[] = [
     {
       done: Boolean(selected),
