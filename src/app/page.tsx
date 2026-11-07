@@ -28,7 +28,7 @@ export default async function Home({
 
   if (!user) {
     return (
-      <div className="flex min-h-screen">
+      <div className="flex min-h-screen flex-col md:flex-row">
         <NavSidebar />
         <main className="flex-1 p-6">
           <h1 className="text-2xl font-bold">{t('title')}</h1>
@@ -124,7 +124,7 @@ export default async function Home({
   ];
 
   return (
-    <div className="flex min-h-screen">
+    <div className="flex min-h-screen flex-col md:flex-row">
       <NavSidebar />
       <main className="flex-1 space-y-6 p-6">
         <h1 className="text-2xl font-bold">{t('title')}</h1>
