@@ -126,7 +126,7 @@ export function SigningKeysSection({ authApiUrl, settingsUrl, keys, disabled, on
   const authorize = async () => {
     setAuthorizing(true);
     try {
-      await startProviderLink(authApiUrl, 'github-signing-key', settingsUrl);
+      await startProviderLink(authApiUrl, 'github-oauth-app', settingsUrl);
     } catch (caught) {
       toast.error(caught instanceof Error ? caught.message : t('actionError'));
       setAuthorizing(false);
