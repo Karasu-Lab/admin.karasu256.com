@@ -44,6 +44,13 @@ export async function getGithubAppInstallUrl(): Promise<string> {
   return data.installUrl;
 }
 
+export async function reregisterAppWebhook(body: { url: string; secret: string }): Promise<{ url: string }> {
+  return apiAuthJson<{ url: string }>('/api/internal/github-app/webhook', {
+    method: 'POST',
+    body: JSON.stringify(body),
+  });
+}
+
 export async function getTenantOverview(organizationId: string, userId: string): Promise<TenantOverview> {
   return apiAuthJson<TenantOverview>(`/api/internal/tenants/${organizationId}/overview?userId=${encodeURIComponent(userId)}`);
 }
