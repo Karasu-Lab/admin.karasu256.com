@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import {
-  Badge,
   Button,
   Card,
   CardContent,
@@ -226,11 +225,6 @@ function KeyRow({
           {t('enabled')}
           <Switch checked={signingKey.enabled} onCheckedChange={onToggle} disabled={busy || !sessionReady} />
         </span>
-      </div>
-      <div className="flex items-center gap-2">
-        <Badge variant={signingKey.registeredOnGitHub ? 'default' : 'secondary'}>
-          {signingKey.registeredOnGitHub ? t('registered') : t('notRegistered')}
-        </Badge>
       </div>
       <pre className="overflow-auto rounded-md bg-muted p-3 text-xs whitespace-pre-wrap break-all">{signingKey.publicKey}</pre>
     </div>
