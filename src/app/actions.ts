@@ -16,9 +16,14 @@ import {
 import { getClientConfig } from '@/lib/client-config';
 import { getRepositoryAccess, requestSignedCommit } from '@/lib/git-api';
 import { seedMirrorIfNeeded } from '@/lib/mirror-seed';
-import { getTenantNpmRepository, saveTenantNpmRepository, type TenantNpmRepository } from '@/lib/npm-repository';
+import {
+  deleteTenantNpmRepository,
+  getTenantNpmRepository,
+  saveTenantNpmRepository,
+  type TenantNpmRepository,
+} from '@/lib/npm-repository';
 import type { InstallationRepository, TenantOverview, TenantSummary } from '@/lib/tenants';
-import { registerRepository, repositoryRemote } from '@/lib/repositories';
+import { registerRepository, repositoryRemote, unregisterRepository } from '@/lib/repositories';
 import { NPM_REPOSITORY_FILES, packageCiWorkflow, workflowTemplateFiles, type SetupFile } from '@/lib/setup-files';
 
 async function requireUserId(): Promise<string> {
@@ -378,6 +383,21 @@ export async function setPackageEnabledAction(input: {
 export async function uninstallBotAction(organizationId: string): Promise<void> {
   const userId = await requireUserId();
   await uninstallTenantBot(organizationId, { userId });
+}
+
+export async function unlinkNpmSetupAction(organizationId: string): Promise<void> {
+  const userId = await requireUserId();
+  const overview = await getTenantOverview(organizationId, userId);
+  if (overview.organization.role !== 'owner' && overview.organization.role !== 'admin') {
+    throw new Error('tenant_setup_role_required');
+  }
+  const npmRepository = await getTenantNpmRepository(organizationId);
+  if (!npmRepository) return;
+  if (npmRepository.npmRepositoryId !== null) await unregisterRepository(npmRepository.npmRepositoryId);
+  if (npmRepository.workflowTemplateRepositoryId !== null) {
+    await unregisterRepository(npmRepository.workflowTemplateRepositoryId);
+  }
+  await deleteTenantNpmRepository(organizationId);
 }
 
 export interface DashboardData {

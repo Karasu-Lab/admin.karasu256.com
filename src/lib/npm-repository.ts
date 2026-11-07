@@ -61,6 +61,10 @@ export async function getTenantNpmRepository(organizationId: string): Promise<Te
   return rows[0] ? toTenantNpmRepository(rows[0]) : null;
 }
 
+export async function deleteTenantNpmRepository(organizationId: string): Promise<void> {
+  await runAdminDb('DELETE FROM tenant_npm_repository WHERE organization_id = ?', [organizationId]);
+}
+
 export async function saveTenantNpmRepository(input: SaveTenantNpmRepositoryInput): Promise<void> {
   const now = new Date().toISOString();
   await runAdminDb(
