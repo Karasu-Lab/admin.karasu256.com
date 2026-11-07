@@ -10,6 +10,8 @@ export interface PackagePublishProgress {
   sha: string;
   sourcePullRequestNumber: number;
   bumpPullRequestUrl: string;
+  commentId: number | null;
+  headSha: string | null;
   createdAt: string;
 }
 
@@ -21,6 +23,8 @@ interface PackagePublishProgressRow {
   sha: string;
   source_pull_request_number: number;
   bump_pull_request_url: string;
+  comment_id: number | null;
+  head_sha: string | null;
   created_at: string;
 }
 
@@ -33,6 +37,8 @@ function toPackagePublishProgress(row: PackagePublishProgressRow): PackagePublis
     sha: row.sha,
     sourcePullRequestNumber: row.source_pull_request_number,
     bumpPullRequestUrl: row.bump_pull_request_url,
+    commentId: row.comment_id,
+    headSha: row.head_sha,
     createdAt: row.created_at,
   };
 }
@@ -44,25 +50,33 @@ export async function recordPublishProgress(input: {
   sha: string;
   sourcePullRequestNumber: number;
   bumpPullRequestUrl: string;
-}): Promise<void> {
+  headSha: string;
+}): Promise<string> {
+  const id = crypto.randomUUID();
   await runAdminDb(
-    'INSERT INTO package_publish_progress (id, organization_id, package_id, repository_full_name, sha, source_pull_request_number, bump_pull_request_url, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+    'INSERT INTO package_publish_progress (id, organization_id, package_id, repository_full_name, sha, source_pull_request_number, bump_pull_request_url, head_sha, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
     [
-      crypto.randomUUID(),
+      id,
       input.organizationId,
       input.packageId,
       input.repositoryFullName,
       input.sha,
       input.sourcePullRequestNumber,
       input.bumpPullRequestUrl,
+      input.headSha,
       new Date().toISOString(),
     ]
   );
+  return id;
+}
+
+export async function setPublishProgressComment(id: string, commentId: number): Promise<void> {
+  await runAdminDb('UPDATE package_publish_progress SET comment_id = ? WHERE id = ?', [commentId, id]);
 }
 
 export async function listPublishProgress(organizationId: string): Promise<PackagePublishProgress[]> {
   const rows = await queryAdminDb<PackagePublishProgressRow>(
-    'SELECT id, organization_id, package_id, repository_full_name, sha, source_pull_request_number, bump_pull_request_url, created_at FROM package_publish_progress WHERE organization_id = ? ORDER BY created_at ASC',
+    'SELECT id, organization_id, package_id, repository_full_name, sha, source_pull_request_number, bump_pull_request_url, comment_id, head_sha, created_at FROM package_publish_progress WHERE organization_id = ? ORDER BY created_at ASC',
     [organizationId]
   );
   return rows.map(toPackagePublishProgress);

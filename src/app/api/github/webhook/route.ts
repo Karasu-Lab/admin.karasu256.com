@@ -2,7 +2,7 @@ import { createHmac, timingSafeEqual } from 'node:crypto';
 import { log } from '@karasu-lab/utils/server';
 import { applyInstallationWebhook, evaluatePushWebhook } from '@/lib/api-auth';
 import { parseGitHubWebhookPayload, type GitHubWorkflowRunWebhookPayload } from '@/lib/github-webhook';
-import { createIssueComment, findMergedPullRequestByCommit } from '@/lib/git-api';
+import { createCommitStatus, createIssueComment, findMergedPullRequestByCommit, updateIssueComment } from '@/lib/git-api';
 import { getTenantNpmRepository, getTenantNpmRepositoryByFullName } from '@/lib/npm-repository';
 import {
   deletePublishProgress,
@@ -11,6 +11,7 @@ import {
   recordPublishProgress,
   renderCommentTemplate,
   resolvePublishedPackage,
+  setPublishProgressComment,
 } from '@/lib/publish-progress';
 import { finishPackageUpdate, startPackageUpdate } from '@/lib/update-events';
 import { getMasterWebhookSecret, listTenantWebhookSecrets } from '@/lib/webhook-secret';
@@ -19,6 +20,7 @@ import { runPointerUpdate, type PointerUpdateResult } from '@/lib/webhook-automa
 export const runtime = 'nodejs';
 
 const PUBLISH_WORKFLOW_NAME = 'Publish packages';
+const PUBLISH_STATUS_CONTEXT = 'Publish';
 const BUMP_BRANCH_PATTERN = /^chore\/bump-(.+)-([0-9a-f]{7})$/;
 
 async function handleWorkflowRun(
@@ -158,12 +160,45 @@ async function handleWorkflowRun(
         run.conclusion === 'success'
           ? renderCommentTemplate(templates.published, values)
           : renderCommentTemplate(templates.publishFailed, values);
-      await createIssueComment({
-        organizationId,
-        repositoryFullName: target.repositoryFullName,
-        issueNumber: target.sourcePullRequestNumber,
-        body,
-      });
+      if (target.commentId) {
+        await updateIssueComment({
+          organizationId,
+          repositoryFullName: target.repositoryFullName,
+          commentId: target.commentId,
+          body,
+        });
+      } else {
+        await createIssueComment({
+          organizationId,
+          repositoryFullName: target.repositoryFullName,
+          issueNumber: target.sourcePullRequestNumber,
+          body,
+        });
+      }
+      if (target.headSha) {
+        try {
+          await createCommitStatus({
+            organizationId,
+            repositoryFullName: target.repositoryFullName,
+            sha: target.headSha,
+            state: run.conclusion === 'success' ? 'success' : 'failure',
+            context: PUBLISH_STATUS_CONTEXT,
+            description:
+              run.conclusion === 'success'
+                ? `Published ${values.packageName}@${values.version}`
+                : `Failed to publish ${values.packageName}`,
+            targetUrl: runUrl,
+          });
+        } catch (statusError) {
+          logWebhookFailure('publish_status_update_failed', {
+            event: 'workflow_run',
+            deliveryId,
+            organizationId,
+            repositoryFullName: target.repositoryFullName,
+            message: statusError instanceof Error ? statusError.message : String(statusError),
+          });
+        }
+      }
     }
   } catch (caught) {
     logWebhookFailure('publish_comment_failed', {
@@ -409,13 +444,14 @@ export async function POST(request: Request): Promise<Response> {
         sha: parsed.data.after,
       });
       if (sourcePullRequest) {
-        await recordPublishProgress({
+        const progressId = await recordPublishProgress({
           organizationId: decision.organizationId,
           packageId: linked.id,
           repositoryFullName: linked.repositoryFullName,
           sha: parsed.data.after,
           sourcePullRequestNumber: sourcePullRequest.number,
           bumpPullRequestUrl: result.pullRequestUrl,
+          headSha: sourcePullRequest.headSha,
         });
         const templates = npmRepository.npmRepositoryFullName
           ? await loadPublishCommentTemplates(decision.organizationId, npmRepository.npmRepositoryFullName)
@@ -428,7 +464,7 @@ export async function POST(request: Request): Promise<Response> {
             npmRepository: npmRepository.npmRepositoryFullName,
           });
         } else {
-          await createIssueComment({
+          const comment = await createIssueComment({
             organizationId: decision.organizationId,
             repositoryFullName: linked.repositoryFullName,
             issueNumber: sourcePullRequest.number,
@@ -438,6 +474,26 @@ export async function POST(request: Request): Promise<Response> {
               commit: parsed.data.after.slice(0, 7),
             }),
           });
+          await setPublishProgressComment(progressId, comment.id);
+          try {
+            await createCommitStatus({
+              organizationId: decision.organizationId,
+              repositoryFullName: linked.repositoryFullName,
+              sha: sourcePullRequest.headSha,
+              state: 'pending',
+              context: PUBLISH_STATUS_CONTEXT,
+              description: `Publishing ${linked.repositoryFullName}`,
+              targetUrl: result.pullRequestUrl,
+            });
+          } catch (statusError) {
+            logWebhookFailure('publish_status_failed', {
+              event,
+              deliveryId,
+              organizationId: decision.organizationId,
+              repositoryFullName: linked.repositoryFullName,
+              message: statusError instanceof Error ? statusError.message : String(statusError),
+            });
+          }
         }
       }
     } catch (caught) {

@@ -125,8 +125,8 @@ export async function findMergedPullRequestByCommit(body: {
   organizationId: string;
   repositoryFullName: string;
   sha: string;
-}): Promise<{ number: number; url: string; headRef: string } | null> {
-  const data = await gitApiJson<{ pullRequest: { number: number; url: string; headRef: string } | null }>(
+}): Promise<{ number: number; url: string; headRef: string; headSha: string } | null> {
+  const data = await gitApiJson<{ pullRequest: { number: number; url: string; headRef: string; headSha: string } | null }>(
     '/api/internal/pull-requests/find-by-commit',
     body
   );
@@ -138,9 +138,34 @@ export async function createIssueComment(body: {
   repositoryFullName: string;
   issueNumber: number;
   body: string;
-}): Promise<{ url: string }> {
-  const data = await gitApiJson<{ comment: { url: string } }>('/api/internal/comments/create', body);
+}): Promise<{ id: number; url: string }> {
+  const data = await gitApiJson<{ comment: { id: number; url: string } }>('/api/internal/comments/create', body);
   return data.comment;
+}
+
+export async function updateIssueComment(body: {
+  organizationId: string;
+  repositoryFullName: string;
+  commentId: number;
+  body: string;
+}): Promise<{ url: string }> {
+  const data = await gitApiJson<{ comment: { url: string } }>('/api/internal/comments/update', body);
+  return data.comment;
+}
+
+export type CommitStatusState = 'error' | 'failure' | 'pending' | 'success';
+
+export async function createCommitStatus(body: {
+  organizationId: string;
+  repositoryFullName: string;
+  sha: string;
+  state: CommitStatusState;
+  context: string;
+  description?: string;
+  targetUrl?: string;
+}): Promise<{ id: number }> {
+  const data = await gitApiJson<{ status: { id: number } }>('/api/internal/statuses/create', body);
+  return data.status;
 }
 
 export async function requestSignedCommit(input: SignedCommitRequest): Promise<SignedCommitResult> {
