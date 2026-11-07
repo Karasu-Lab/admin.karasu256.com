@@ -18,6 +18,7 @@ import {
   DialogTitle,
   Input,
   Switch,
+  toast,
 } from '@karasu-lab/ui';
 import type { UserSigningKey } from '@/lib/tenants';
 
@@ -37,7 +38,6 @@ export function SigningKeysSection({ authApiUrl, settingsUrl, keys }: SigningKey
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [newName, setNewName] = useState('');
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [privateKey, setPrivateKey] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
 
@@ -70,11 +70,10 @@ export function SigningKeysSection({ authApiUrl, settingsUrl, keys }: SigningKey
 
   const run = async (fn: () => Promise<void>) => {
     setBusy(true);
-    setError(null);
     try {
       await fn();
     } catch {
-      setError(t('actionError'));
+      toast.error(t('actionError'));
     } finally {
       setBusy(false);
     }
@@ -135,7 +134,6 @@ export function SigningKeysSection({ authApiUrl, settingsUrl, keys }: SigningKey
             {t('authorize')}
           </Button>
         </div>
-        {error && <p className="text-sm text-destructive">{error}</p>}
         <div className="space-y-4">
           {keys.map((key) => (
             <KeyRow

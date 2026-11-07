@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { getLocale, getMessages, getTranslations } from 'next-intl/server';
 import { NextIntlClientProvider } from 'next-intl';
-import { PopUpMenuProvider, SessionProvider, TooltipProvider } from '@karasu-lab/ui';
+import { PopUpMenuProvider, SessionProvider, Toaster, TooltipProvider } from '@karasu-lab/ui';
 import { geistSans, geistMono, notoSansJP } from '@karasu-lab/ui/fonts';
 import { getSessionUser } from '@karasu-lab/utils/server';
 import { Header } from '@/components/header';
@@ -42,6 +42,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                 <GithubCorner />
               </TooltipProvider>
             </PopUpMenuProvider>
+            <Toaster />
           </SessionProvider>
         </NextIntlClientProvider>
       </body>
