@@ -13,7 +13,7 @@ import {
   getGithubAppInstallUrl,
 } from '@/lib/api-auth';
 import { getClientConfig } from '@/lib/client-config';
-import { createBotPullRequest, createTenantRepository, getRepositoryAccess, listTenantRepositories, requestSignedCommit, reregisterAppWebhook } from '@/lib/git-api';
+import { createBotPullRequest, createTenantRepository, getRepositoryAccess, listTenantRepositories, requestSignedCommit } from '@/lib/git-api';
 import { seedMirrorIfNeeded } from '@/lib/mirror-seed';
 import {
   deleteTenantNpmRepository,
@@ -24,7 +24,7 @@ import {
 import type { InstallationRepository, TenantLinkedPackage, TenantOverview, TenantSummary } from '@/lib/tenants';
 import { registerRepository, repositoryRemote, unregisterRepository } from '@/lib/repositories';
 import { getTenantSetupCompleted, markTenantSetupCompleted } from '@/lib/setup-completion';
-import { generateWebhookSecret, getMasterWebhookSecret, getTenantWebhookSecret, setTenantWebhookSecret } from '@/lib/webhook-secret';
+import { generateWebhookSecret, getTenantWebhookSecret, setTenantWebhookSecret } from '@/lib/webhook-secret';
 import { getLiveFeed, type LiveFeedData } from '@/lib/update-events';
 
 export type { LiveFeedData, PackageUpdateEvent } from '@/lib/update-events';
@@ -526,17 +526,6 @@ export async function markSetupCompletedAction(organizationId: string): Promise<
   const userId = await requireUserId();
   await getTenantOverview(organizationId, userId);
   await markTenantSetupCompleted(organizationId);
-}
-
-export async function reregisterWebhookAction(organizationId: string): Promise<void> {
-  const userId = await requireUserId();
-  const overview = await getTenantOverview(organizationId, userId);
-  if (overview.organization.role !== 'owner' && overview.organization.role !== 'admin') {
-    throw new Error('tenant_setup_role_required');
-  }
-  const secret = getMasterWebhookSecret();
-  if (!secret) throw new Error('webhook_not_configured');
-  await reregisterAppWebhook({ url: `${getClientConfig().appUrl}/api/github/webhook`, secret });
 }
 
 export async function rotateWebhookSecretAction(organizationId: string): Promise<string> {
