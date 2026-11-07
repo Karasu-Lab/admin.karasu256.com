@@ -46,10 +46,10 @@ export function LinkedPackagesSection({
       <CardContent className="space-y-4">
         {packages.length === 0 && !disabled && <p className="text-sm text-muted-foreground">{t('empty')}</p>}
         {packages.map((linkedPackage) => (
-          <div key={linkedPackage.id} className="space-y-1 rounded-md border p-4">
+          <div key={linkedPackage.id} className="rounded-md border p-4">
             <div className="flex flex-wrap items-center gap-2">
               <span className="font-medium">{linkedPackage.repositoryFullName}</span>
-              <span className="ml-auto flex items-center gap-2 text-sm">
+              <span className="flex items-center gap-2 text-sm">
                 {t('autoUpdate')}
                 <Switch
                   checked={linkedPackage.enabled}
@@ -58,12 +58,6 @@ export function LinkedPackagesSection({
                 />
               </span>
             </div>
-            <p className="text-sm text-muted-foreground">
-              {linkedPackage.submodulePath} · {t('versionNaming')}: {linkedPackage.versionNaming}
-            </p>
-            <p className="text-sm text-muted-foreground">
-              {t('lastSynced')}: {linkedPackage.lastSyncedSha ?? t('notSynced')}
-            </p>
           </div>
         ))}
       </CardContent>
