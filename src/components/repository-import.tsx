@@ -45,20 +45,23 @@ export function RepositoryImport({
   linkedFullNames,
   onRefresh,
   disabled,
+  excludedFullNames,
 }: {
   organizationId?: string;
   repositories: InstallationRepository[];
   linkedFullNames: string[];
   onRefresh?: () => void;
   disabled?: boolean;
+  excludedFullNames?: string[];
 }) {
   const t = useTranslations('RepositoryImport');
   const router = useRouter();
   const [busyId, setBusyId] = useState<number | null>(null);
   const [page, setPage] = useState(1);
-  const pageCount = Math.max(1, Math.ceil(repositories.length / PAGE_SIZE));
+  const candidates = repositories.filter((repository) => !excludedFullNames?.includes(repository.fullName));
+  const pageCount = Math.max(1, Math.ceil(candidates.length / PAGE_SIZE));
   const currentPage = Math.min(page, pageCount);
-  const visibleRepositories = repositories.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+  const visibleRepositories = candidates.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
 
   const refresh = () => {
     if (onRefresh) {
@@ -94,7 +97,7 @@ export function RepositoryImport({
         <CardDescription>{t('description')}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-3">
-        {!disabled && repositories.length === 0 && <p className="text-sm text-muted-foreground">{t('empty')}</p>}
+        {!disabled && candidates.length === 0 && <p className="text-sm text-muted-foreground">{t('empty')}</p>}
         {visibleRepositories.map((repository) => {
           const linked = linkedFullNames.includes(repository.fullName);
           return (

@@ -265,6 +265,12 @@ export async function linkPackageAction(input: {
   ) {
     throw new Error('npm_not_configured');
   }
+  if (
+    input.repositoryFullName === npmRepository.npmRepositoryFullName ||
+    input.repositoryFullName === npmRepository.workflowTemplateRepositoryFullName
+  ) {
+    throw new Error('setup_repository_cannot_be_linked');
+  }
   const signerUserId = overview.installation.installedByUserId;
   if (!signerUserId) throw new Error('signing_user_unknown');
 
