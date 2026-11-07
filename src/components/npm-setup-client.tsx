@@ -48,7 +48,7 @@ export function NpmSetupClient({ tenantId }: { tenantId?: string }) {
           </CardContent>
         </Card>
       )}
-      {(loading || (selected && overview?.installation && !alreadyDone)) && (
+      {(loading || (selected && overview?.installation)) && (
         <NpmSetupForm
           organizationId={selected?.id ?? ''}
           owner={overview?.installation?.targetLogin}
