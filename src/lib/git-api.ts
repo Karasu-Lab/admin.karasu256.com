@@ -125,6 +125,28 @@ export async function createBotPullRequest(body: {
   return data.pullRequest;
 }
 
+export async function findMergedPullRequestByCommit(body: {
+  organizationId: string;
+  repositoryFullName: string;
+  sha: string;
+}): Promise<{ number: number; url: string; headRef: string } | null> {
+  const data = await gitApiJson<{ pullRequest: { number: number; url: string; headRef: string } | null }>(
+    '/api/internal/pull-requests/find-by-commit',
+    body
+  );
+  return data.pullRequest;
+}
+
+export async function createIssueComment(body: {
+  organizationId: string;
+  repositoryFullName: string;
+  issueNumber: number;
+  body: string;
+}): Promise<{ url: string }> {
+  const data = await gitApiJson<{ comment: { url: string } }>('/api/internal/comments/create', body);
+  return data.comment;
+}
+
 export async function requestSignedCommit(input: SignedCommitRequest): Promise<SignedCommitResult> {
   const response = await gitApiFetch('/api/internal/mirrors/commit', input);
   if (response.status === 403) {
