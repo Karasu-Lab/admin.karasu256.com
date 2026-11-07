@@ -10,10 +10,12 @@ export function NpmSetupForm({
   organizationId,
   initialNpmRepositoryName,
   initialTemplateRepositoryName,
+  onRefresh,
 }: {
   organizationId: string;
   initialNpmRepositoryName?: string;
   initialTemplateRepositoryName?: string;
+  onRefresh?: () => void;
 }) {
   const t = useTranslations('NpmSetup');
   const router = useRouter();
@@ -29,7 +31,11 @@ export function NpmSetupForm({
         npmRepositoryName: npmName,
         templateRepositoryName: templateName,
       });
-      router.refresh();
+      if (onRefresh) {
+        onRefresh();
+      } else {
+        router.refresh();
+      }
     } catch (caught) {
       toast.error(caught instanceof Error ? caught.message : t('error'));
     } finally {

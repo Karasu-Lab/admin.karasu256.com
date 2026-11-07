@@ -1,14 +1,18 @@
 'use client';
 
-import { useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { DropdownMenuItem, DropdownMenuSeparator } from '@karasu-lab/ui';
+import { Link } from '@/i18n/navigation';
 import type { TenantSummary } from '@/lib/tenants';
-import { CreateTenantDialog } from './create-tenant-dialog';
 
-export function TenantMenuSection({ tenants, authApiUrl }: { tenants: TenantSummary[]; authApiUrl: string }) {
+export function TenantMenuSection({
+  tenants,
+  onAddTenant,
+}: {
+  tenants: TenantSummary[];
+  onAddTenant: () => void;
+}) {
   const t = useTranslations('header');
-  const [dialogOpen, setDialogOpen] = useState(false);
   return (
     <>
       <DropdownMenuSeparator />
@@ -16,13 +20,12 @@ export function TenantMenuSection({ tenants, authApiUrl }: { tenants: TenantSumm
       {tenants.map((tenant) => (
         <DropdownMenuItem
           key={tenant.id}
-          render={<a href={`/tenants/${tenant.id}/settings`} />}
+          render={<Link href={`/tenants/${tenant.id}/settings`} />}
         >
           {tenant.name}
         </DropdownMenuItem>
       ))}
-      <DropdownMenuItem onClick={() => setDialogOpen(true)}>{t('addTenant')}</DropdownMenuItem>
-      <CreateTenantDialog open={dialogOpen} onOpenChange={setDialogOpen} authApiUrl={authApiUrl} />
+      <DropdownMenuItem onClick={onAddTenant}>{t('addTenant')}</DropdownMenuItem>
     </>
   );
 }

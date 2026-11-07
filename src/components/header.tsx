@@ -1,11 +1,11 @@
 import Link from 'next/link';
 import { getLocale, getTranslations } from 'next-intl/server';
-import { Header as UiHeader, AccountMenu, type CountryCode } from '@karasu-lab/ui';
+import { Header as UiHeader, type CountryCode } from '@karasu-lab/ui';
 import { getRootAppUrl, getSessionUser, getSignInUrl, signOutAction, setLocaleAction } from '@karasu-lab/utils/server';
 import { listUserTenants } from '@/lib/api-auth';
 import { getClientConfig } from '@/lib/client-config';
 import type { TenantSummary } from '@/lib/tenants';
-import { TenantMenuSection } from './tenant-menu-section';
+import { TenantAccountMenu } from './tenant-account-menu';
 
 const localeLabels: Record<'en' | 'ja', { label: string; countryCode: CountryCode }> = {
   en: { label: 'English', countryCode: 'US' },
@@ -39,15 +39,15 @@ export async function Header() {
       currentLocale={currentLocale}
       onLocaleChange={setLocaleAction}
     >
-      <AccountMenu
+      <TenantAccountMenu
+        tenants={tenants}
+        authApiUrl={clientConfig.authApiUrl}
         signInHref={signInUrl}
         settingsHref={`${rootUrl}/settings`}
         onSignOut={signOutAction}
         labels={{ signIn: t('signIn'), settings: t('settings'), signOut: t('signOut') }}
         triggerAriaLabel={t('accountMenuLabel')}
-      >
-        {user ? <TenantMenuSection tenants={tenants} authApiUrl={clientConfig.authApiUrl} /> : null}
-      </AccountMenu>
+      />
     </UiHeader>
   );
 }

@@ -10,9 +10,11 @@ import type { TenantLinkedPackage } from '@/lib/tenants';
 export function LinkedPackagesSection({
   organizationId,
   packages,
+  onRefresh,
 }: {
   organizationId: string;
   packages: TenantLinkedPackage[];
+  onRefresh?: () => void;
 }) {
   const t = useTranslations('Packages');
   const router = useRouter();
@@ -22,7 +24,11 @@ export function LinkedPackagesSection({
     setBusyId(linkedPackage.id);
     try {
       await setPackageEnabledAction({ organizationId, packageId: linkedPackage.id, enabled });
-      router.refresh();
+      if (onRefresh) {
+        onRefresh();
+      } else {
+        router.refresh();
+      }
     } catch (caught) {
       toast.error(caught instanceof Error ? caught.message : String(caught));
     } finally {
