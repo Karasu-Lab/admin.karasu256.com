@@ -82,12 +82,12 @@ export function LinkedPackagesSection({
         {packages.map((linkedPackage) => (
           <div key={linkedPackage.id} className="rounded-md border p-4">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="font-medium">{linkedPackage.repositoryFullName}</span>
+              <span className="min-w-0 flex-1 font-medium">{linkedPackage.repositoryFullName}</span>
               <span className="text-sm">{t('autoUpdate')}</span>
               <Button variant="destructive" disabled={disabled} onClick={() => setUnlinkTarget(linkedPackage)}>
                 {t('unlink')}
               </Button>
-              <span className="ml-auto flex items-center">
+              <span className="flex items-center">
                 <Switch
                   checked={linkedPackage.enabled}
                   disabled={disabled || busyId === linkedPackage.id}
