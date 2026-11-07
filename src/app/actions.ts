@@ -546,8 +546,8 @@ export async function rotateWebhookSecretAction(organizationId: string): Promise
     throw new Error('tenant_setup_role_required');
   }
   const secret = generateWebhookSecret();
-  await reregisterAppWebhook({ url: `${getClientConfig().appUrl}/api/github/webhook`, secret });
   await setTenantWebhookSecret(organizationId, secret);
+  await reregisterAppWebhook({ url: `${getClientConfig().appUrl}/api/github/webhook`, secret });
   return secret;
 }
 

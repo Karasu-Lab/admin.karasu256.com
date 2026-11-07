@@ -69,12 +69,12 @@ export function PackagesClient({ tenantId }: { tenantId?: string }) {
     try {
       await rotateWebhookSecretAction(selected.id);
       toast.success(t('webhookSecretRotated'));
-      setRotateDialogOpen(false);
-      await load();
     } catch (caught) {
       toast.error(caught instanceof Error ? caught.message : String(caught));
     } finally {
       setRotating(false);
+      setRotateDialogOpen(false);
+      await load();
     }
   };
 
