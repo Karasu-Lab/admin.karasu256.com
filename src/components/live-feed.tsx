@@ -5,15 +5,24 @@ import { useTranslations } from 'next-intl';
 import { Badge, Card, CardContent, CardHeader, CardTitle, Spinner } from '@karasu-lab/ui';
 import { getLiveFeedAction, type LiveFeedData, type PackageUpdateEvent } from '@/app/actions';
 
-export function LiveFeed({ tenantId, disabled }: { tenantId?: string; disabled?: boolean }) {
+export function LiveFeed({
+  tenantId,
+  disabled,
+  initialFeed,
+}: {
+  tenantId?: string;
+  disabled?: boolean;
+  initialFeed?: LiveFeedData | null;
+}) {
   const t = useTranslations('LiveFeed');
-  const [feed, setFeed] = useState<LiveFeedData | null>(null);
+  const [feed, setFeed] = useState<LiveFeedData | null>(initialFeed ?? null);
 
   useEffect(() => {
     if (!tenantId) {
-      setFeed(null);
+      setFeed(initialFeed ?? null);
       return;
     }
+    setFeed(initialFeed ?? null);
     let cancelled = false;
     getLiveFeedAction(tenantId)
       .then((data) => {
@@ -31,7 +40,7 @@ export function LiveFeed({ tenantId, disabled }: { tenantId?: string; disabled?:
       cancelled = true;
       source.close();
     };
-  }, [tenantId]);
+  }, [tenantId, initialFeed]);
 
   const loaded = feed !== null && !disabled;
   const processing = feed?.processing ?? [];

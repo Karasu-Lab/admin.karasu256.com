@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { Badge, Button, Card, CardContent, CardHeader, CardTitle, Spinner, toast } from '@karasu-lab/ui';
-import { getDashboardDataAction, markSetupCompletedAction, type DashboardData } from '@/app/actions';
+import { getDashboardDataAction, markSetupCompletedAction, type DashboardData, type LiveFeedData } from '@/app/actions';
 import { LiveFeed } from './live-feed';
 import { RepositoryImport } from './repository-import';
 
@@ -16,7 +16,15 @@ interface Step {
   hrefLabel?: string;
 }
 
-export function DashboardClient({ tenantId, initialSetupCompleted }: { tenantId?: string; initialSetupCompleted?: boolean }) {
+export function DashboardClient({
+  tenantId,
+  initialSetupCompleted,
+  initialFeed,
+}: {
+  tenantId?: string;
+  initialSetupCompleted?: boolean;
+  initialFeed?: LiveFeedData | null;
+}) {
   const t = useTranslations('Dashboard');
   const tOnboarding = useTranslations('Onboarding');
   const [data, setData] = useState<DashboardData | null>(null);
@@ -178,7 +186,7 @@ export function DashboardClient({ tenantId, initialSetupCompleted }: { tenantId?
           </CardContent>
         </Card>
       )}
-      {(loading || selected) && <LiveFeed tenantId={selected?.id} disabled={loading} />}
+      {(loading || selected) && <LiveFeed tenantId={selected?.id} disabled={loading} initialFeed={initialFeed} />}
       {loading && (
         <RepositoryImport organizationId={tenantId} repositories={[]} linkedFullNames={[]} disabled excludedFullNames={setupRepositoryFullNames} />
       )}
