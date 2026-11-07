@@ -22,6 +22,7 @@ export const onRequestError: Instrumentation.onRequestError = (error, request, c
 };
 
 interface ErrorLogFields {
+  [key: string]: unknown;
   name?: string;
   message: string;
   stack?: string;
