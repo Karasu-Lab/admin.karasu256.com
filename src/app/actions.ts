@@ -11,10 +11,9 @@ import {
   uninstallTenantBot,
   unlinkTenantPackage,
   getGithubAppInstallUrl,
-  reregisterAppWebhook,
 } from '@/lib/api-auth';
 import { getClientConfig } from '@/lib/client-config';
-import { createBotPullRequest, createTenantRepository, getRepositoryAccess, listTenantRepositories, requestSignedCommit } from '@/lib/git-api';
+import { createBotPullRequest, createTenantRepository, getRepositoryAccess, listTenantRepositories, requestSignedCommit, reregisterAppWebhook } from '@/lib/git-api';
 import { seedMirrorIfNeeded } from '@/lib/mirror-seed';
 import {
   deleteTenantNpmRepository,
