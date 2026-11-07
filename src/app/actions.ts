@@ -413,6 +413,74 @@ export interface DashboardData {
   repositories: InstallationRepository[];
 }
 
+async function readRepositorySubmodules(
+  token: string,
+  repositoryFullName: string
+): Promise<{ path: string; repositoryFullName: string }[]> {
+  const response = await githubGet(token, `${repositoryFullName}/contents/.gitmodules`);
+  if (!response.ok) return [];
+  const data = (await response.json()) as { content?: string };
+  if (!data.content) return [];
+  const text = Buffer.from(data.content, 'base64').toString('utf8');
+  const submodules: { path: string; repositoryFullName: string }[] = [];
+  const sectionPattern = /\[submodule "[^"]+"\]\s*\n\s*path = ([^\n]+)\n\s*url = ([^\n]+)/g;
+  for (const match of text.matchAll(sectionPattern)) {
+    const path = match[1].trim();
+    const fullName = match[2].trim().replace(/^https:\/\/github\.com\//, '').replace(/\.git$/, '');
+    if (path && fullName.includes('/')) submodules.push({ path, repositoryFullName: fullName });
+  }
+  return submodules;
+}
+
+async function reconcileLinkedPackages(input: {
+  organizationId: string;
+  userId: string;
+  overview: TenantOverview;
+  npmRepository: TenantNpmRepository | null;
+}): Promise<TenantOverview> {
+  const { organizationId, userId, overview, npmRepository } = input;
+  if (!overview.installation || !npmRepository?.npmRepositoryFullName) return overview;
+  try {
+    const { token } = await getInstallationToken(organizationId);
+    const submodules = await readRepositorySubmodules(token, npmRepository.npmRepositoryFullName);
+    const linkedNames = new Set(overview.linkedPackages.map((linked) => linked.repositoryFullName));
+    const missing = submodules.filter((submodule) => !linkedNames.has(submodule.repositoryFullName));
+    if (missing.length === 0) return overview;
+    const repositories = await listTenantRepositories(organizationId);
+    const byFullName = new Map(repositories.map((repository) => [repository.fullName, repository]));
+    let registered = false;
+    for (const submodule of missing) {
+      const repository = byFullName.get(submodule.repositoryFullName);
+      if (!repository) continue;
+      try {
+        await registerRepository({
+          repositoryId: repository.id,
+          remote: repositoryRemote(repository.fullName),
+          isPrivate: repository.private,
+        });
+        const access = await getRepositoryAccess(repository.id);
+        if (!access.allowed) continue;
+        const manifest = await readManifestRaw(token, repository.fullName);
+        const declared = (manifest as PackageManifest | null)?.versionNaming?.pattern;
+        await linkTenantPackage(organizationId, {
+          userId,
+          repositoryId: repository.id,
+          repositoryFullName: repository.fullName,
+          submodulePath: submodule.path,
+          versionNaming: declared ?? DEFAULT_VERSION_NAMING_PATTERN,
+        });
+        registered = true;
+      } catch {
+        continue;
+      }
+    }
+    if (!registered) return overview;
+    return await getTenantOverview(organizationId, userId);
+  } catch {
+    return overview;
+  }
+}
+
 export async function getDashboardDataAction(tenantId?: string): Promise<DashboardData> {
   const user = await getSessionUser(getClientConfig().authApiUrl);
   if (!user) {
@@ -423,10 +491,11 @@ export async function getDashboardDataAction(tenantId?: string): Promise<Dashboa
   if (!selected) {
     return { signedIn: true, tenants, selected: null, overview: null, npmRepository: null, repositories: [] };
   }
-  const [overview, npmRepository] = await Promise.all([
+  const [loadedOverview, npmRepository] = await Promise.all([
     getTenantOverview(selected.id, user.uid),
     getTenantNpmRepository(selected.id),
   ]);
+  const overview = await reconcileLinkedPackages({ organizationId: selected.id, userId: user.uid, overview: loadedOverview, npmRepository });
   const repositories = overview.installation ? await listTenantRepositories(selected.id) : [];
   return { signedIn: true, tenants, selected, overview, npmRepository, repositories };
 }
@@ -464,10 +533,11 @@ export interface TenantSettingsData {
 
 export async function getTenantSettingsDataAction(organizationId: string): Promise<TenantSettingsData> {
   const userId = await requireUserId();
-  const [overview, npmRepository] = await Promise.all([
+  const [loadedOverview, npmRepository] = await Promise.all([
     getTenantOverview(organizationId, userId),
     getTenantNpmRepository(organizationId),
   ]);
+  const overview = await reconcileLinkedPackages({ organizationId, userId, overview: loadedOverview, npmRepository });
   return { overview, npmRepository };
 }
 
