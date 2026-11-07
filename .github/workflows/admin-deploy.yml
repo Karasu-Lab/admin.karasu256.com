@@ -137,6 +137,20 @@ jobs:
           mode: production
           worker-name: admin-karasu256-com
 
+  register-webhook:
+    needs: deploy
+    environment: production
+    runs-on: ubuntu-latest
+    env:
+      INTERNAL_API_SECRET: ${{ secrets.INTERNAL_API_SECRET }}
+      GH_APP_WEBHOOK_SECRET: ${{ secrets.GH_APP_WEBHOOK_SECRET }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: node scripts/register-webhook.mjs
+
   preview:
     needs: d1
     if: github.ref_name != 'main' && needs.d1.outputs.binding_pushed != 'true'

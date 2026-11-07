@@ -18,14 +18,13 @@ import {
   Spinner,
   toast,
 } from '@karasu-lab/ui';
-import { getPackagesDataAction, reregisterWebhookAction, rotateWebhookSecretAction, type PackagesData } from '@/app/actions';
+import { getPackagesDataAction, rotateWebhookSecretAction, type PackagesData } from '@/app/actions';
 import { LinkedPackagesSection } from './linked-packages-section';
 
 export function PackagesClient({ tenantId }: { tenantId?: string }) {
   const t = useTranslations('Packages');
   const tNpmSetup = useTranslations('NpmSetup');
   const [data, setData] = useState<PackagesData | null>(null);
-  const [reregistering, setReregistering] = useState(false);
   const [rotating, setRotating] = useState(false);
   const [rotateDialogOpen, setRotateDialogOpen] = useState(false);
 
@@ -48,19 +47,6 @@ export function PackagesClient({ tenantId }: { tenantId?: string }) {
   const overview = data?.overview ?? null;
   const webhookSecret = data?.webhookSecret ?? null;
   const canManage = overview?.organization.role === 'owner' || overview?.organization.role === 'admin';
-
-  const handleReregisterWebhook = async () => {
-    if (!selected) return;
-    setReregistering(true);
-    try {
-      await reregisterWebhookAction(selected.id);
-      toast.success(t('webhookReregistered'));
-    } catch (caught) {
-      toast.error(caught instanceof Error ? caught.message : String(caught));
-    } finally {
-      setReregistering(false);
-    }
-  };
 
   const handleRotateWebhookSecret = async () => {
     if (!selected) return;
@@ -111,11 +97,7 @@ export function PackagesClient({ tenantId }: { tenantId?: string }) {
               </div>
             )}
             <div className="flex gap-2">
-              <Button onClick={() => void handleReregisterWebhook()} disabled={loading || !canManage || reregistering || rotating}>
-                {reregistering && <Spinner />}
-                {reregistering ? t('webhookReregistering') : t('webhookReregister')}
-              </Button>
-              <Button variant="outline" onClick={() => setRotateDialogOpen(true)} disabled={loading || !canManage || reregistering || rotating}>
+              <Button variant="outline" onClick={() => setRotateDialogOpen(true)} disabled={loading || !canManage || rotating}>
                 {webhookSecret ? t('webhookSecretRotate') : t('webhookSecretGenerate')}
               </Button>
             </div>

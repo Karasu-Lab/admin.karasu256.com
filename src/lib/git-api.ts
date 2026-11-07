@@ -50,10 +50,6 @@ async function gitApiFetch(path: string, body: unknown): Promise<Response> {
   });
 }
 
-export async function reregisterAppWebhook(body: { url: string; secret: string }): Promise<{ url: string }> {
-  return gitApiJson<{ url: string }>('/api/internal/github-app/webhook', body);
-}
-
 async function gitApiJson<T>(path: string, body: unknown): Promise<T> {
   const response = await gitApiFetch(path, body);
   if (!response.ok) {
