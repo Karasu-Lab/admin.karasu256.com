@@ -21,7 +21,6 @@ import {
 import { getGithubAppInstallUrlAction, getTenantSettingsDataAction, uninstallBotAction, type TenantSettingsData } from '@/app/actions';
 import { requestProviderLinkUrl } from '@/lib/provider-link';
 import { DeleteTenantSection } from './delete-tenant-section';
-import { LinkedPackagesSection } from './linked-packages-section';
 import { SigningKeysSection } from './signing-keys-section';
 
 export function TenantSettingsClient({
@@ -156,14 +155,13 @@ export function TenantSettingsClient({
               ) : (
                 <>
                   {!loading && <p className="text-sm text-muted-foreground">{t('notConfigured')}</p>}
-                  <Button variant="outline" disabled={loading} render={<Link href={`/npm-setup?tenant=${tenantId}`} />}>
+                  <Button variant="outline" disabled={loading} render={<Link href={`/setup?tenant=${tenantId}`} />}>
                     {t('openSetup')}
                   </Button>
                 </>
               )}
             </CardContent>
           </Card>
-          <LinkedPackagesSection organizationId={tenantId} packages={overview?.linkedPackages ?? []} disabled={loading} onRefresh={load} />
           <SigningKeysSection
             authApiUrl={authApiUrl}
             settingsUrl={settingsUrl}
