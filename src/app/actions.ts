@@ -43,6 +43,8 @@ function requireReusableRepository(repository: InstallationRepository): Installa
   return repository;
 }
 
+export type RepositorySetupOutcome = 'created' | 'overwritten';
+
 async function createOrReuseRepository(input: {
   organizationId: string;
   userId: string;
@@ -50,20 +52,21 @@ async function createOrReuseRepository(input: {
   name: string;
   isTemplate?: boolean;
   knownRepositories: InstallationRepository[];
-}): Promise<InstallationRepository> {
+}): Promise<{ repository: InstallationRepository; outcome: RepositorySetupOutcome }> {
   const existing = findExistingRepository(input.knownRepositories, input.owner, input.name);
-  if (existing) return requireReusableRepository(existing);
+  if (existing) return { repository: requireReusableRepository(existing), outcome: 'overwritten' };
   try {
-    return await createTenantRepository(input.organizationId, {
+    const repository = await createTenantRepository(input.organizationId, {
       userId: input.userId,
       name: input.name,
       private: false,
       isTemplate: input.isTemplate,
     });
+    return { repository, outcome: 'created' };
   } catch (caught) {
     const repositories = await listTenantRepositories(input.organizationId).catch(() => []);
     const appeared = findExistingRepository(repositories, input.owner, input.name);
-    if (appeared) return requireReusableRepository(appeared);
+    if (appeared) return { repository: requireReusableRepository(appeared), outcome: 'overwritten' };
     throw caught;
   }
 }
@@ -72,7 +75,12 @@ export async function startNpmSetupAction(input: {
   organizationId: string;
   npmRepositoryName: string;
   templateRepositoryName: string;
-}): Promise<{ npmRepositoryFullName: string; templateRepositoryFullName: string }> {
+}): Promise<{
+  npmRepositoryFullName: string;
+  templateRepositoryFullName: string;
+  npmRepositoryOutcome: RepositorySetupOutcome;
+  templateRepositoryOutcome: RepositorySetupOutcome;
+}> {
   const userId = await requireUserId();
   const overview = await getTenantOverview(input.organizationId, userId);
   if (!overview.installation) throw new Error('github_app_not_installed');
@@ -84,14 +92,15 @@ export async function startNpmSetupAction(input: {
     workflowTemplateRepositoryName: input.templateRepositoryName,
   });
   const knownRepositories = await listTenantRepositories(input.organizationId);
-  const npmRepository = await createOrReuseRepository({
+  const npmSetup = await createOrReuseRepository({
     organizationId: input.organizationId,
     userId,
     owner,
     name: input.npmRepositoryName,
     knownRepositories,
   });
-  const templateRepository = await createOrReuseRepository({
+  const npmRepository = npmSetup.repository;
+  const templateSetup = await createOrReuseRepository({
     organizationId: input.organizationId,
     userId,
     owner,
@@ -99,6 +108,7 @@ export async function startNpmSetupAction(input: {
     isTemplate: true,
     knownRepositories,
   });
+  const templateRepository = templateSetup.repository;
   await saveTenantNpmRepository({
     organizationId: input.organizationId,
     owner,
@@ -122,6 +132,8 @@ export async function startNpmSetupAction(input: {
   return {
     npmRepositoryFullName: npmRepository.fullName,
     templateRepositoryFullName: templateRepository.fullName,
+    npmRepositoryOutcome: npmSetup.outcome,
+    templateRepositoryOutcome: templateSetup.outcome,
   };
 }
 
@@ -356,23 +368,25 @@ export interface NpmSetupData {
   selected: TenantSummary | null;
   overview: TenantOverview | null;
   npmRepository: TenantNpmRepository | null;
+  repositories: InstallationRepository[];
 }
 
 export async function getNpmSetupDataAction(tenantId?: string): Promise<NpmSetupData> {
   const user = await getSessionUser(getClientConfig().authApiUrl);
   if (!user) {
-    return { signedIn: false, selected: null, overview: null, npmRepository: null };
+    return { signedIn: false, selected: null, overview: null, npmRepository: null, repositories: [] };
   }
   const tenants = await listUserTenants(user.uid);
   const selected = tenants.find((tenant) => tenant.id === tenantId) ?? tenants[0] ?? null;
   if (!selected) {
-    return { signedIn: true, selected: null, overview: null, npmRepository: null };
+    return { signedIn: true, selected: null, overview: null, npmRepository: null, repositories: [] };
   }
   const [overview, npmRepository] = await Promise.all([
     getTenantOverview(selected.id, user.uid),
     getTenantNpmRepository(selected.id),
   ]);
-  return { signedIn: true, selected, overview, npmRepository };
+  const repositories = overview.installation ? await listTenantRepositories(selected.id) : [];
+  return { signedIn: true, selected, overview, npmRepository, repositories };
 }
 
 export interface TenantSettingsData {
