@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { Badge, Button, Card, CardContent, CardHeader, CardTitle, Spinner, toast } from '@karasu-lab/ui';
 import { getDashboardDataAction, markSetupCompletedAction, type DashboardData } from '@/app/actions';
+import { LiveFeed } from './live-feed';
 import { RepositoryImport } from './repository-import';
 
 interface Step {
@@ -177,6 +178,7 @@ export function DashboardClient({ tenantId }: { tenantId?: string }) {
           </CardContent>
         </Card>
       )}
+      {(loading || selected) && <LiveFeed tenantId={selected?.id} disabled={loading} />}
       {loading && (
         <RepositoryImport organizationId={tenantId} repositories={[]} linkedFullNames={[]} disabled excludedFullNames={setupRepositoryFullNames} />
       )}
