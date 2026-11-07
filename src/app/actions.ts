@@ -8,12 +8,15 @@ import {
   getInstallationToken,
   getTenantOverview,
   linkTenantPackage,
+  listTenantRepositories,
+  listUserTenants,
   setTenantPackageEnabled,
 } from '@/lib/api-auth';
 import { getClientConfig } from '@/lib/client-config';
 import { getRepositoryAccess, requestSignedCommit } from '@/lib/git-api';
 import { seedMirrorIfNeeded } from '@/lib/mirror-seed';
-import { getTenantNpmRepository, saveTenantNpmRepository } from '@/lib/npm-repository';
+import { getTenantNpmRepository, saveTenantNpmRepository, type TenantNpmRepository } from '@/lib/npm-repository';
+import type { InstallationRepository, TenantOverview, TenantSummary } from '@/lib/tenants';
 import { registerRepository, repositoryRemote } from '@/lib/repositories';
 
 async function requireUserId(): Promise<string> {
@@ -271,4 +274,69 @@ export async function setPackageEnabledAction(input: {
 }): Promise<void> {
   const userId = await requireUserId();
   await setTenantPackageEnabled(input.organizationId, input.packageId, { userId, enabled: input.enabled });
+}
+
+export interface DashboardData {
+  signedIn: boolean;
+  tenants: TenantSummary[];
+  selected: TenantSummary | null;
+  overview: TenantOverview | null;
+  npmRepository: TenantNpmRepository | null;
+  repositories: InstallationRepository[];
+}
+
+export async function getDashboardDataAction(tenantId?: string): Promise<DashboardData> {
+  const user = await getSessionUser(getClientConfig().authApiUrl);
+  if (!user) {
+    return { signedIn: false, tenants: [], selected: null, overview: null, npmRepository: null, repositories: [] };
+  }
+  const tenants = await listUserTenants(user.uid);
+  const selected = tenants.find((tenant) => tenant.id === tenantId) ?? tenants[0] ?? null;
+  if (!selected) {
+    return { signedIn: true, tenants, selected: null, overview: null, npmRepository: null, repositories: [] };
+  }
+  const [overview, npmRepository] = await Promise.all([
+    getTenantOverview(selected.id, user.uid),
+    getTenantNpmRepository(selected.id),
+  ]);
+  const repositories = overview.installation ? await listTenantRepositories(selected.id) : [];
+  return { signedIn: true, tenants, selected, overview, npmRepository, repositories };
+}
+
+export interface NpmSetupData {
+  signedIn: boolean;
+  selected: TenantSummary | null;
+  overview: TenantOverview | null;
+  npmRepository: TenantNpmRepository | null;
+}
+
+export async function getNpmSetupDataAction(tenantId?: string): Promise<NpmSetupData> {
+  const user = await getSessionUser(getClientConfig().authApiUrl);
+  if (!user) {
+    return { signedIn: false, selected: null, overview: null, npmRepository: null };
+  }
+  const tenants = await listUserTenants(user.uid);
+  const selected = tenants.find((tenant) => tenant.id === tenantId) ?? tenants[0] ?? null;
+  if (!selected) {
+    return { signedIn: true, selected: null, overview: null, npmRepository: null };
+  }
+  const [overview, npmRepository] = await Promise.all([
+    getTenantOverview(selected.id, user.uid),
+    getTenantNpmRepository(selected.id),
+  ]);
+  return { signedIn: true, selected, overview, npmRepository };
+}
+
+export interface TenantSettingsData {
+  overview: TenantOverview;
+  npmRepository: TenantNpmRepository | null;
+}
+
+export async function getTenantSettingsDataAction(organizationId: string): Promise<TenantSettingsData> {
+  const userId = await requireUserId();
+  const [overview, npmRepository] = await Promise.all([
+    getTenantOverview(organizationId, userId),
+    getTenantNpmRepository(organizationId),
+  ]);
+  return { overview, npmRepository };
 }

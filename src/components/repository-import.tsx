@@ -11,14 +11,24 @@ export function RepositoryImport({
   organizationId,
   repositories,
   linkedFullNames,
+  onRefresh,
 }: {
   organizationId: string;
   repositories: InstallationRepository[];
   linkedFullNames: string[];
+  onRefresh?: () => void;
 }) {
   const t = useTranslations('RepositoryImport');
   const router = useRouter();
   const [busyId, setBusyId] = useState<number | null>(null);
+
+  const refresh = () => {
+    if (onRefresh) {
+      onRefresh();
+    } else {
+      router.refresh();
+    }
+  };
 
   const link = async (repository: InstallationRepository) => {
     setBusyId(repository.id);
@@ -30,7 +40,7 @@ export function RepositoryImport({
         defaultBranch: repository.defaultBranch,
         private: repository.private,
       });
-      router.refresh();
+      refresh();
     } catch (caught) {
       toast.error(caught instanceof Error ? caught.message : t('linkError'));
     } finally {

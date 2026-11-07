@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { DropdownMenuItem, DropdownMenuSeparator } from '@karasu-lab/ui';
+import { Link } from '@/i18n/navigation';
 import type { TenantSummary } from '@/lib/tenants';
 import { CreateTenantDialog } from './create-tenant-dialog';
 
@@ -16,7 +17,7 @@ export function TenantMenuSection({ tenants, authApiUrl }: { tenants: TenantSumm
       {tenants.map((tenant) => (
         <DropdownMenuItem
           key={tenant.id}
-          render={<a href={`/tenants/${tenant.id}/settings`} />}
+          render={<Link href={`/tenants/${tenant.id}/settings`} />}
         >
           {tenant.name}
         </DropdownMenuItem>

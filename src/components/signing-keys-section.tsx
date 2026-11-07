@@ -26,15 +26,23 @@ interface SigningKeysSectionProps {
   authApiUrl: string;
   settingsUrl: string;
   keys: UserSigningKey[];
+  onRefresh?: () => void;
 }
 
 interface SessionResponse {
   session?: { id?: string } | null;
 }
 
-export function SigningKeysSection({ authApiUrl, settingsUrl, keys }: SigningKeysSectionProps) {
+export function SigningKeysSection({ authApiUrl, settingsUrl, keys, onRefresh }: SigningKeysSectionProps) {
   const t = useTranslations('SigningKeys');
   const router = useRouter();
+  const refresh = () => {
+    if (onRefresh) {
+      onRefresh();
+    } else {
+      router.refresh();
+    }
+  };
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [newName, setNewName] = useState('');
   const [busy, setBusy] = useState(false);
@@ -87,7 +95,7 @@ export function SigningKeysSection({ authApiUrl, settingsUrl, keys }: SigningKey
         setSaved(false);
         setPrivateKey(data.privateKey);
       } else {
-        router.refresh();
+        refresh();
       }
     });
 
@@ -101,13 +109,13 @@ export function SigningKeysSection({ authApiUrl, settingsUrl, keys }: SigningKey
   const rename = (keyId: string, name: string) =>
     run(async () => {
       await call(`/api/signing-keys/${keyId}/rename`, { name });
-      router.refresh();
+      refresh();
     });
 
   const setEnabled = (keyId: string, enabled: boolean) =>
     run(async () => {
       await call(`/api/signing-keys/${keyId}/enabled`, { enabled });
-      router.refresh();
+      refresh();
     });
 
   const authorizeUrl = `${authApiUrl}/api/signing-keys/authorize?returnTo=${encodeURIComponent(settingsUrl)}`;
@@ -153,7 +161,7 @@ export function SigningKeysSection({ authApiUrl, settingsUrl, keys }: SigningKey
         onOpenChange={(open) => {
           if (!open && saved) {
             setPrivateKey(null);
-            router.refresh();
+            refresh();
           }
         }}
       >
@@ -174,7 +182,7 @@ export function SigningKeysSection({ authApiUrl, settingsUrl, keys }: SigningKey
                 disabled={!saved}
                 onClick={() => {
                   setPrivateKey(null);
-                  router.refresh();
+                  refresh();
                 }}
               >
                 {t('close')}
