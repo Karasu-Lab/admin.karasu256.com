@@ -30,7 +30,7 @@ export function LinkedPackagesSection({
   organizationId: string;
   packages: TenantLinkedPackage[];
   disabled?: boolean;
-  onRefresh?: () => void;
+  onRefresh?: () => Promise<void> | void;
 }) {
   const t = useTranslations('Packages');
   const router = useRouter();
@@ -38,9 +38,9 @@ export function LinkedPackagesSection({
   const [unlinkTarget, setUnlinkTarget] = useState<TenantLinkedPackage | null>(null);
   const [unlinking, setUnlinking] = useState(false);
 
-  const refresh = () => {
+  const refresh = async () => {
     if (onRefresh) {
-      onRefresh();
+      await onRefresh();
     } else {
       router.refresh();
     }
@@ -50,7 +50,7 @@ export function LinkedPackagesSection({
     setBusyId(linkedPackage.id);
     try {
       await setPackageEnabledAction({ organizationId, packageId: linkedPackage.id, enabled });
-      refresh();
+      await refresh();
     } catch (caught) {
       toast.error(caught instanceof Error ? caught.message : String(caught));
     } finally {
@@ -64,7 +64,7 @@ export function LinkedPackagesSection({
     try {
       await unlinkPackageAction({ organizationId, packageId: unlinkTarget.id });
       setUnlinkTarget(null);
-      refresh();
+      await refresh();
     } catch (caught) {
       toast.error(caught instanceof Error ? caught.message : String(caught));
     } finally {
@@ -80,14 +80,14 @@ export function LinkedPackagesSection({
       <CardContent className="space-y-4">
         {packages.length === 0 && !disabled && <p className="text-sm text-muted-foreground">{t('empty')}</p>}
         {packages.map((linkedPackage) => (
-          <div key={linkedPackage.id} className="rounded-md border p-4">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="min-w-0 flex-1 font-medium">{linkedPackage.repositoryFullName}</span>
+          <div key={linkedPackage.id} className="space-y-2 rounded-md border p-4">
+            <div className="min-w-0 font-medium break-words">{linkedPackage.repositoryFullName}</div>
+            <div className="flex items-center gap-2">
               <span className="text-sm">{t('autoUpdate')}</span>
               <Button variant="destructive" disabled={disabled} onClick={() => setUnlinkTarget(linkedPackage)}>
                 {t('unlink')}
               </Button>
-              <span className="flex items-center">
+              <span className="ml-auto flex items-center">
                 <Switch
                   checked={linkedPackage.enabled}
                   disabled={disabled || busyId === linkedPackage.id}
