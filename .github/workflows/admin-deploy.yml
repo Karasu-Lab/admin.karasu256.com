@@ -23,6 +23,7 @@ jobs:
   d1:
     runs-on: ubuntu-latest
     permissions:
+      actions: write
       contents: write
     outputs:
       binding_pushed: ${{ steps.binding.outputs.binding_pushed }}
