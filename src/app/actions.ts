@@ -12,6 +12,7 @@ import {
   listUserTenants,
   setTenantPackageEnabled,
   uninstallTenantBot,
+  getGithubAppInstallUrl,
 } from '@/lib/api-auth';
 import { getClientConfig } from '@/lib/client-config';
 import { getRepositoryAccess, requestSignedCommit } from '@/lib/git-api';
@@ -388,6 +389,11 @@ export async function setPackageEnabledAction(input: {
 }): Promise<void> {
   const userId = await requireUserId();
   await setTenantPackageEnabled(input.organizationId, input.packageId, { userId, enabled: input.enabled });
+}
+
+export async function getGithubAppInstallUrlAction(): Promise<string> {
+  await requireUserId();
+  return getGithubAppInstallUrl();
 }
 
 export async function uninstallBotAction(organizationId: string): Promise<void> {

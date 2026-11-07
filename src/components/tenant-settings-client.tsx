@@ -18,8 +18,8 @@ import {
   Spinner,
   toast,
 } from '@karasu-lab/ui';
-import { getTenantSettingsDataAction, uninstallBotAction, type TenantSettingsData } from '@/app/actions';
-import { startProviderLink } from '@/lib/provider-link';
+import { getGithubAppInstallUrlAction, getTenantSettingsDataAction, uninstallBotAction, type TenantSettingsData } from '@/app/actions';
+import { requestProviderLinkUrl } from '@/lib/provider-link';
 import { DeleteTenantSection } from './delete-tenant-section';
 import { LinkedPackagesSection } from './linked-packages-section';
 import { SigningKeysSection } from './signing-keys-section';
@@ -42,7 +42,11 @@ export function TenantSettingsClient({
   const install = async () => {
     setInstalling(true);
     try {
-      await startProviderLink(authApiUrl, 'github-app', settingsUrl, { organizationId: tenantId });
+      const authorizeUrl = await requestProviderLinkUrl(authApiUrl, 'github-app', settingsUrl, { organizationId: tenantId });
+      const state = new URL(authorizeUrl).searchParams.get('state');
+      if (!state) throw new Error(t('installError'));
+      const installUrl = await getGithubAppInstallUrlAction();
+      window.location.href = `${installUrl}?state=${encodeURIComponent(state)}`;
     } catch (caught) {
       toast.error(caught instanceof Error ? caught.message : t('installError'));
       setInstalling(false);
