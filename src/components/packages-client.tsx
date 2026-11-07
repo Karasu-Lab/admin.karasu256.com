@@ -6,7 +6,6 @@ import {
   Button,
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
   Dialog,
@@ -97,7 +96,6 @@ export function PackagesClient({ tenantId }: { tenantId?: string }) {
         <Card>
           <CardHeader>
             <CardTitle>{t('webhookTitle')}</CardTitle>
-            <CardDescription>{t('webhookDescription')}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             {!loading && canManage && !webhookSecret && <p className="text-sm text-muted-foreground">{t('webhookSecretNotSet')}</p>}
@@ -117,16 +115,9 @@ export function PackagesClient({ tenantId }: { tenantId?: string }) {
                 {reregistering && <Spinner />}
                 {reregistering ? t('webhookReregistering') : t('webhookReregister')}
               </Button>
-              {!loading && canManage && !webhookSecret && (
-                <Button onClick={() => setRotateDialogOpen(true)} disabled={rotating}>
-                  {t('webhookSecretGenerate')}
-                </Button>
-              )}
-              {!loading && canManage && webhookSecret && (
-                <Button variant="outline" onClick={() => setRotateDialogOpen(true)} disabled={reregistering || rotating}>
-                  {t('webhookSecretRotate')}
-                </Button>
-              )}
+              <Button variant="outline" onClick={() => setRotateDialogOpen(true)} disabled={loading || !canManage || reregistering || rotating}>
+                {webhookSecret ? t('webhookSecretRotate') : t('webhookSecretGenerate')}
+              </Button>
             </div>
           </CardContent>
         </Card>
