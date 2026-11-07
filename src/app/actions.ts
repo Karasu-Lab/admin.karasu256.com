@@ -25,6 +25,49 @@ async function requireUserId(): Promise<string> {
   return user.uid;
 }
 
+function findExistingRepository(
+  repositories: InstallationRepository[],
+  owner: string,
+  name: string
+): InstallationRepository | null {
+  const fullName = `${owner}/${name}`.toLowerCase();
+  return repositories.find((repository) => repository.fullName.toLowerCase() === fullName) ?? null;
+}
+
+function requireReusableRepository(repository: InstallationRepository): InstallationRepository {
+  if (repository.private) {
+    throw new Error(
+      `Repository ${repository.fullName} already exists and is private, so it cannot be used for the npm setup, which requires a public repository`
+    );
+  }
+  return repository;
+}
+
+async function createOrReuseRepository(input: {
+  organizationId: string;
+  userId: string;
+  owner: string;
+  name: string;
+  isTemplate?: boolean;
+  knownRepositories: InstallationRepository[];
+}): Promise<InstallationRepository> {
+  const existing = findExistingRepository(input.knownRepositories, input.owner, input.name);
+  if (existing) return requireReusableRepository(existing);
+  try {
+    return await createTenantRepository(input.organizationId, {
+      userId: input.userId,
+      name: input.name,
+      private: false,
+      isTemplate: input.isTemplate,
+    });
+  } catch (caught) {
+    const repositories = await listTenantRepositories(input.organizationId).catch(() => []);
+    const appeared = findExistingRepository(repositories, input.owner, input.name);
+    if (appeared) return requireReusableRepository(appeared);
+    throw caught;
+  }
+}
+
 export async function startNpmSetupAction(input: {
   organizationId: string;
   npmRepositoryName: string;
@@ -40,16 +83,21 @@ export async function startNpmSetupAction(input: {
     npmRepositoryName: input.npmRepositoryName,
     workflowTemplateRepositoryName: input.templateRepositoryName,
   });
-  const npmRepository = await createTenantRepository(input.organizationId, {
+  const knownRepositories = await listTenantRepositories(input.organizationId);
+  const npmRepository = await createOrReuseRepository({
+    organizationId: input.organizationId,
     userId,
+    owner,
     name: input.npmRepositoryName,
-    private: false,
+    knownRepositories,
   });
-  const templateRepository = await createTenantRepository(input.organizationId, {
+  const templateRepository = await createOrReuseRepository({
+    organizationId: input.organizationId,
     userId,
+    owner,
     name: input.templateRepositoryName,
-    private: false,
     isTemplate: true,
+    knownRepositories,
   });
   await saveTenantNpmRepository({
     organizationId: input.organizationId,
@@ -64,12 +112,12 @@ export async function startNpmSetupAction(input: {
   await registerRepository({
     repositoryId: npmRepository.id,
     remote: repositoryRemote(npmRepository.fullName),
-    isPrivate: false,
+    isPrivate: npmRepository.private,
   });
   await registerRepository({
     repositoryId: templateRepository.id,
     remote: repositoryRemote(templateRepository.fullName),
-    isPrivate: false,
+    isPrivate: templateRepository.private,
   });
   return {
     npmRepositoryFullName: npmRepository.fullName,

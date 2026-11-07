@@ -23,23 +23,19 @@ export function NpmSetupClient({ tenantId }: { tenantId?: string }) {
     void load();
   }, [load]);
 
-  if (!data) {
-    return (
-      <main className="flex-1 space-y-6 p-6">
-        <h1 className="text-2xl font-bold">{t('title')}</h1>
-      </main>
-    );
-  }
-
-  const { signedIn, selected, overview, npmRepository } = data;
+  const loading = !data;
+  const signedIn = data?.signedIn ?? false;
+  const selected = data?.selected ?? null;
+  const overview = data?.overview ?? null;
+  const npmRepository = data?.npmRepository ?? null;
   const alreadyDone = Boolean(npmRepository?.npmRepositoryFullName && npmRepository?.workflowTemplateRepositoryFullName);
 
   return (
     <main className="flex-1 space-y-6 p-6">
       <h1 className="text-2xl font-bold">{t('title')}</h1>
-      {!signedIn && <p className="text-muted-foreground">{t('noTenant')}</p>}
-      {signedIn && !selected && <p className="text-muted-foreground">{t('noTenant')}</p>}
-      {selected && overview && !overview.installation && (
+      {!loading && !signedIn && <p className="text-muted-foreground">{t('noTenant')}</p>}
+      {!loading && signedIn && !selected && <p className="text-muted-foreground">{t('noTenant')}</p>}
+      {!loading && selected && overview && !overview.installation && (
         <p className="text-muted-foreground">{t('noTenant')}</p>
       )}
       {selected && alreadyDone && (
@@ -52,11 +48,12 @@ export function NpmSetupClient({ tenantId }: { tenantId?: string }) {
           </CardContent>
         </Card>
       )}
-      {selected && overview?.installation && !alreadyDone && (
+      {(loading || (selected && overview?.installation && !alreadyDone)) && (
         <NpmSetupForm
-          organizationId={selected.id}
+          organizationId={selected?.id ?? ''}
           initialNpmRepositoryName={npmRepository?.npmRepositoryName}
           initialTemplateRepositoryName={npmRepository?.workflowTemplateRepositoryName}
+          disabled={loading}
           onRefresh={load}
         />
       )}
