@@ -16,7 +16,7 @@ interface Step {
   hrefLabel?: string;
 }
 
-export function DashboardClient({ tenantId }: { tenantId?: string }) {
+export function DashboardClient({ tenantId, initialSetupCompleted }: { tenantId?: string; initialSetupCompleted?: boolean }) {
   const t = useTranslations('Dashboard');
   const tOnboarding = useTranslations('Onboarding');
   const [data, setData] = useState<DashboardData | null>(null);
@@ -48,7 +48,7 @@ export function DashboardClient({ tenantId }: { tenantId?: string }) {
 
   const tenants = data?.tenants ?? [];
   const selected = data?.selected ?? null;
-  const setupCompleted = data?.setupCompleted ?? false;
+  const setupCompleted = data?.setupCompleted ?? initialSetupCompleted ?? false;
   const overview = data?.overview ?? null;
   const npmRepository = data?.npmRepository ?? null;
   const repositories = data?.repositories ?? [];
