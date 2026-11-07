@@ -23,12 +23,10 @@ import {
   Switch,
   toast,
 } from '@karasu-lab/ui';
-import { startProviderLink } from '@/lib/provider-link';
 import type { UserSigningKey } from '@/lib/tenants';
 
 interface SigningKeysSectionProps {
   authApiUrl: string;
-  settingsUrl: string;
   keys: UserSigningKey[];
   disabled?: boolean;
   onRefresh?: () => void;
@@ -38,7 +36,7 @@ interface SessionResponse {
   session?: { id?: string } | null;
 }
 
-export function SigningKeysSection({ authApiUrl, settingsUrl, keys, disabled, onRefresh }: SigningKeysSectionProps) {
+export function SigningKeysSection({ authApiUrl, keys, disabled, onRefresh }: SigningKeysSectionProps) {
   const t = useTranslations('SigningKeys');
   const router = useRouter();
   const refresh = () => {
@@ -123,22 +121,10 @@ export function SigningKeysSection({ authApiUrl, settingsUrl, keys, disabled, on
       refresh();
     });
 
-  const [authorizing, setAuthorizing] = useState(false);
-
-  const authorize = async () => {
-    setAuthorizing(true);
-    try {
-      await startProviderLink(authApiUrl, 'github-oauth-app', settingsUrl);
-    } catch (caught) {
-      toast.error(caught instanceof Error ? caught.message : t('actionError'));
-      setAuthorizing(false);
-    }
-  };
-
   return (
     <Card>
       <CardHeader>
-        <CardTitle>{t('title')}</CardTitle>
+        <CardTitle>{t('registrationTitle')}</CardTitle>
         <CardDescription>{t('description')}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
@@ -154,10 +140,6 @@ export function SigningKeysSection({ authApiUrl, settingsUrl, keys, disabled, on
           <Button onClick={create} disabled={disabled || busy || !sessionId || !newName}>
             {busy && <Spinner />}
             {busy ? t('creating') : t('create')}
-          </Button>
-          <Button variant="outline" disabled={disabled || authorizing} onClick={authorize}>
-            {authorizing && <Spinner />}
-            {t('authorize')}
           </Button>
         </div>
         <div className="space-y-4">

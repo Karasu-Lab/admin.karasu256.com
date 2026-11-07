@@ -22,6 +22,7 @@ import {
   type SetupData,
 } from '@/app/actions';
 import { RepositorySetupForm } from './repository-setup-form';
+import { SigningKeyAuthorizationSection } from './signing-key-authorization-section';
 import { SigningKeysSection } from './signing-keys-section';
 
 export function SetupClient({
@@ -155,13 +156,10 @@ export function SetupClient({
         </>
       )}
       {(loading || selected) && (
-        <SigningKeysSection
-          authApiUrl={authApiUrl}
-          settingsUrl={settingsUrl}
-          keys={overview?.signingKeys ?? []}
-          disabled={loading}
-          onRefresh={load}
-        />
+        <>
+          <SigningKeyAuthorizationSection authApiUrl={authApiUrl} settingsUrl={settingsUrl} disabled={loading} />
+          <SigningKeysSection authApiUrl={authApiUrl} keys={overview?.signingKeys ?? []} disabled={loading} onRefresh={load} />
+        </>
       )}
     </main>
   );
