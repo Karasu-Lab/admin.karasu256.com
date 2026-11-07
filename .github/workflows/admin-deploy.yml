@@ -35,8 +35,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 24
-      - name: Find or create the admin D1 database
-        id: database
+      - id: database
         run: |
           list=$(curl -sS -G "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/d1/database" \
             -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
@@ -66,8 +65,7 @@ jobs:
           fi
           echo "database_id=$database_id" >> "$GITHUB_OUTPUT"
           echo "Admin D1 database id: $database_id"
-      - name: Write the ADMIN_DB binding into wrangler.jsonc
-        env:
+      - env:
           DATABASE_ID: ${{ steps.database.outputs.database_id }}
         run: |
           node <<'EOF'
@@ -97,10 +95,8 @@ jobs:
           config.previews.d1_databases = binding;
           writeFileSync('wrangler.jsonc', `${JSON.stringify(sortKeys(config))}\n`);
           EOF
-      - name: Apply the D1 migrations
-        run: npx -y wrangler@4.155.0 d1 migrations apply ADMIN_DB --remote
-      - name: Commit the ADMIN_DB binding
-        id: binding
+      - run: npx -y wrangler@4.155.0 d1 migrations apply ADMIN_DB --remote
+      - id: binding
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
