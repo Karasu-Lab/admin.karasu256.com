@@ -210,6 +210,7 @@ async function githubGet(token: string, path: string): Promise<Response> {
     headers: {
       accept: 'application/vnd.github+json',
       authorization: `Bearer ${token}`,
+      'user-agent': 'karasu-lab-admin',
       'x-github-api-version': '2022-11-28',
     },
     cache: 'no-store',
