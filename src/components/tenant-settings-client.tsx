@@ -19,6 +19,7 @@ import {
   toast,
 } from '@karasu-lab/ui';
 import { getTenantSettingsDataAction, uninstallBotAction, type TenantSettingsData } from '@/app/actions';
+import { startProviderLink } from '@/lib/provider-link';
 import { DeleteTenantSection } from './delete-tenant-section';
 import { LinkedPackagesSection } from './linked-packages-section';
 import { SigningKeysSection } from './signing-keys-section';
@@ -27,17 +28,26 @@ export function TenantSettingsClient({
   tenantId,
   authApiUrl,
   settingsUrl,
-  installUrl,
 }: {
   tenantId: string;
   authApiUrl: string;
   settingsUrl: string;
-  installUrl: string;
 }) {
   const t = useTranslations('TenantSettings');
   const [data, setData] = useState<TenantSettingsData | null>(null);
   const [uninstallConfirmOpen, setUninstallConfirmOpen] = useState(false);
   const [uninstalling, setUninstalling] = useState(false);
+  const [installing, setInstalling] = useState(false);
+
+  const install = async () => {
+    setInstalling(true);
+    try {
+      await startProviderLink(authApiUrl, 'github-app', settingsUrl, { organizationId: tenantId });
+    } catch (caught) {
+      toast.error(caught instanceof Error ? caught.message : t('installError'));
+      setInstalling(false);
+    }
+  };
 
   const load = useCallback(async () => {
     try {
@@ -117,7 +127,8 @@ export function TenantSettingsClient({
               ) : (
                 <>
                   {!loading && <p className="text-sm text-muted-foreground">{t('notInstalled')}</p>}
-                  <Button disabled={loading} render={<a href={installUrl} />}>
+                  <Button disabled={loading || installing} onClick={install}>
+                    {installing && <Spinner />}
                     {t('install')}
                   </Button>
                 </>
