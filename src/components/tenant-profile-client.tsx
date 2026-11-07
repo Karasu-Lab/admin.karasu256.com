@@ -47,31 +47,25 @@ export function TenantProfileClient({ tenantId, authApiUrl }: { tenantId: string
     }
   };
 
-  if (!data) {
-    return (
-      <main className="flex-1 space-y-6 p-6">
-        <h1 className="text-2xl font-bold">{t('title')}</h1>
-      </main>
-    );
-  }
+  const loading = !data;
 
   return (
     <main className="flex-1 space-y-6 p-6">
       <h1 className="text-2xl font-bold">
         {t('title')}
-        {` — ${data.name}`}
+        {data ? ` — ${data.name}` : ''}
       </h1>
       <Card>
         <CardContent className="space-y-4 pt-6">
           <div className="space-y-2">
             <Label htmlFor="tenant-name">{t('name')}</Label>
-            <Input id="tenant-name" value={name} onChange={(event) => setName(event.target.value)} />
+            <Input id="tenant-name" value={name} disabled={loading} onChange={(event) => setName(event.target.value)} />
           </div>
           <div className="space-y-2">
             <Label htmlFor="tenant-slug">{t('slug')}</Label>
-            <Input id="tenant-slug" value={slug} onChange={(event) => setSlug(event.target.value)} />
+            <Input id="tenant-slug" value={slug} disabled={loading} onChange={(event) => setSlug(event.target.value)} />
           </div>
-          <Button onClick={save} disabled={busy || !name || !slug}>
+          <Button onClick={save} disabled={busy || loading || !name || !slug}>
             {busy && <Spinner />}
             {busy ? t('saving') : t('save')}
           </Button>

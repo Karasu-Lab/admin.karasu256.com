@@ -36,15 +36,9 @@ export function TenantSettingsClient({
     void load();
   }, [load]);
 
-  if (!data) {
-    return (
-      <main className="flex-1 space-y-6 p-6">
-        <h1 className="text-2xl font-bold">{t('title')}</h1>
-      </main>
-    );
-  }
-
-  const { overview, npmRepository } = data;
+  const overview = data?.overview;
+  const npmRepository = data?.npmRepository;
+  const loading = !data;
 
   return (
     <main className="flex-1 space-y-6 p-6">
@@ -52,14 +46,14 @@ export function TenantSettingsClient({
         {t('title')}
         {overview ? ` — ${overview.organization.name}` : ''}
       </h1>
-      {overview && (
+      {(loading || overview) && (
         <>
           <Card>
             <CardHeader>
               <CardTitle>{t('installation')}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              {overview.installation ? (
+              {overview?.installation ? (
                 <div className="flex flex-wrap items-center gap-2">
                   <span>
                     {t('installedOn')}: {overview.installation.targetLogin} ({overview.installation.targetType})
@@ -68,8 +62,10 @@ export function TenantSettingsClient({
                 </div>
               ) : (
                 <>
-                  <p className="text-sm text-muted-foreground">{t('notInstalled')}</p>
-                  <Button render={<a href={installUrl} />}>{t('install')}</Button>
+                  {!loading && <p className="text-sm text-muted-foreground">{t('notInstalled')}</p>}
+                  <Button disabled={loading} render={<a href={installUrl} />}>
+                    {t('install')}
+                  </Button>
                 </>
               )}
             </CardContent>
@@ -90,17 +86,28 @@ export function TenantSettingsClient({
                 </>
               ) : (
                 <>
-                  <p className="text-sm text-muted-foreground">{t('notConfigured')}</p>
-                  <Button variant="outline" render={<Link href={`/npm-setup?tenant=${tenantId}`} />}>
+                  {!loading && <p className="text-sm text-muted-foreground">{t('notConfigured')}</p>}
+                  <Button variant="outline" disabled={loading} render={<Link href={`/npm-setup?tenant=${tenantId}`} />}>
                     {t('openSetup')}
                   </Button>
                 </>
               )}
             </CardContent>
           </Card>
-          <LinkedPackagesSection organizationId={tenantId} packages={overview.linkedPackages} onRefresh={load} />
-          <SigningKeysSection authApiUrl={authApiUrl} settingsUrl={settingsUrl} keys={overview.signingKeys} onRefresh={load} />
-          <DeleteTenantSection organizationId={tenantId} organizationName={overview.organization.name} authApiUrl={authApiUrl} />
+          <LinkedPackagesSection organizationId={tenantId} packages={overview?.linkedPackages ?? []} disabled={loading} onRefresh={load} />
+          <SigningKeysSection
+            authApiUrl={authApiUrl}
+            settingsUrl={settingsUrl}
+            keys={overview?.signingKeys ?? []}
+            disabled={loading}
+            onRefresh={load}
+          />
+          <DeleteTenantSection
+            organizationId={tenantId}
+            organizationName={overview?.organization.name ?? ''}
+            authApiUrl={authApiUrl}
+            disabled={loading}
+          />
         </>
       )}
     </main>

@@ -10,10 +10,12 @@ import type { TenantLinkedPackage } from '@/lib/tenants';
 export function LinkedPackagesSection({
   organizationId,
   packages,
+  disabled,
   onRefresh,
 }: {
   organizationId: string;
   packages: TenantLinkedPackage[];
+  disabled?: boolean;
   onRefresh?: () => void;
 }) {
   const t = useTranslations('Packages');
@@ -42,7 +44,7 @@ export function LinkedPackagesSection({
         <CardTitle>{t('title')}</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        {packages.length === 0 && <p className="text-sm text-muted-foreground">{t('empty')}</p>}
+        {packages.length === 0 && !disabled && <p className="text-sm text-muted-foreground">{t('empty')}</p>}
         {packages.map((linkedPackage) => (
           <div key={linkedPackage.id} className="space-y-1 rounded-md border p-4">
             <div className="flex flex-wrap items-center gap-2">
@@ -51,7 +53,7 @@ export function LinkedPackagesSection({
                 {t('autoUpdate')}
                 <Switch
                   checked={linkedPackage.enabled}
-                  disabled={busyId === linkedPackage.id}
+                  disabled={disabled || busyId === linkedPackage.id}
                   onCheckedChange={(enabled) => toggle(linkedPackage, enabled)}
                 />
               </span>

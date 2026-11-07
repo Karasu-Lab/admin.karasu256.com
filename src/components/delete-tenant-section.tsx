@@ -23,10 +23,12 @@ export function DeleteTenantSection({
   organizationId,
   organizationName,
   authApiUrl,
+  disabled,
 }: {
   organizationId: string;
   organizationName: string;
   authApiUrl: string;
+  disabled?: boolean;
 }) {
   const t = useTranslations('TenantSettings');
   const router = useRouter();
@@ -60,7 +62,7 @@ export function DeleteTenantSection({
         <CardDescription>{t('deleteDescription')}</CardDescription>
       </CardHeader>
       <CardContent>
-        <Button variant="destructive" onClick={() => setConfirmOpen(true)}>
+        <Button variant="destructive" disabled={disabled} onClick={() => setConfirmOpen(true)}>
           {t('delete')}
         </Button>
         <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
