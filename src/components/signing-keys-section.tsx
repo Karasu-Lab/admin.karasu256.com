@@ -82,8 +82,8 @@ export function SigningKeysSection({ authApiUrl, settingsUrl, keys, disabled, on
     setBusy(true);
     try {
       await fn();
-    } catch {
-      toast.error(t('actionError'));
+    } catch (caught) {
+      toast.error(caught instanceof Error ? caught.message : t('actionError'));
     } finally {
       setBusy(false);
     }

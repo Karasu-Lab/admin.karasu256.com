@@ -39,14 +39,21 @@ export function CreateTenantDialog({ open, onOpenChange, authApiUrl }: CreateTen
           body: JSON.stringify({ name, slug }),
         }
       );
-      if (!response.ok) throw new Error(await response.text());
+      if (!response.ok) {
+        const data = (await response.json().catch(() => null)) as { message?: unknown; error?: unknown } | null;
+        throw new Error(
+          (typeof data?.message === 'string' && data.message) ||
+            (typeof data?.error === 'string' && data.error) ||
+            `http_${response.status}`
+        );
+      }
       onOpenChange(false);
       setName('');
       setSlug('');
       setSlugEdited(false);
       router.refresh();
-    } catch {
-      toast.error(t('createError'));
+    } catch (caught) {
+      toast.error(caught instanceof Error ? caught.message : t('createError'));
     } finally {
       setSubmitting(false);
     }

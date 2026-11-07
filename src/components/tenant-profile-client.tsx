@@ -38,10 +38,17 @@ export function TenantProfileClient({ tenantId, authApiUrl }: { tenantId: string
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ organizationId: tenantId, data: { name, slug } }),
       });
-      if (!response.ok) throw new Error(await response.text());
+      if (!response.ok) {
+        const data = (await response.json().catch(() => null)) as { message?: unknown; error?: unknown } | null;
+        throw new Error(
+          (typeof data?.message === 'string' && data.message) ||
+            (typeof data?.error === 'string' && data.error) ||
+            `http_${response.status}`
+        );
+      }
       await load();
-    } catch {
-      toast.error(t('updateError'));
+    } catch (caught) {
+      toast.error(caught instanceof Error ? caught.message : t('updateError'));
     } finally {
       setBusy(false);
     }

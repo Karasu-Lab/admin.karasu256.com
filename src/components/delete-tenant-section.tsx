@@ -44,12 +44,19 @@ export function DeleteTenantSection({
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ organizationId }),
       });
-      if (!response.ok) throw new Error(await response.text());
+      if (!response.ok) {
+        const data = (await response.json().catch(() => null)) as { message?: unknown; error?: unknown } | null;
+        throw new Error(
+          (typeof data?.message === 'string' && data.message) ||
+            (typeof data?.error === 'string' && data.error) ||
+            `http_${response.status}`
+        );
+      }
       setConfirmOpen(false);
       router.push('/');
       router.refresh();
-    } catch {
-      toast.error(t('deleteError'));
+    } catch (caught) {
+      toast.error(caught instanceof Error ? caught.message : t('deleteError'));
     } finally {
       setBusy(false);
     }
