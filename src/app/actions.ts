@@ -418,7 +418,10 @@ async function readRepositorySubmodules(
   repositoryFullName: string
 ): Promise<{ path: string; repositoryFullName: string }[]> {
   const response = await githubGet(token, `${repositoryFullName}/contents/.gitmodules`);
-  if (!response.ok) return [];
+  if (!response.ok) {
+    console.error(new Error(`failed to read .gitmodules of ${repositoryFullName}: GitHub responded ${response.status}`));
+    return [];
+  }
   const data = (await response.json()) as { content?: string };
   if (!data.content) return [];
   const text = Buffer.from(data.content, 'base64').toString('utf8');
@@ -459,7 +462,12 @@ async function reconcileLinkedPackages(input: {
           isPrivate: repository.private,
         });
         const access = await getRepositoryAccess(repository.id);
-        if (!access.allowed) continue;
+        if (!access.allowed) {
+          console.warn(
+            `linked package reconciliation skipped ${repository.fullName}: the git service does not allow it (visibility: ${access.visibility ?? 'unknown'}, reason: ${access.reason ?? 'not_allowed'})`
+          );
+          continue;
+        }
         const manifest = await readManifestRaw(token, repository.fullName);
         const declared = (manifest as PackageManifest | null)?.versionNaming?.pattern;
         await linkTenantPackage(organizationId, {
@@ -470,13 +478,19 @@ async function reconcileLinkedPackages(input: {
           versionNaming: declared ?? DEFAULT_VERSION_NAMING_PATTERN,
         });
         registered = true;
-      } catch {
+      } catch (caught) {
+        console.error(
+          caught instanceof Error
+            ? new Error(`linked package reconciliation failed for ${submodule.repositoryFullName}: ${caught.message}`)
+            : caught
+        );
         continue;
       }
     }
     if (!registered) return overview;
     return await getTenantOverview(organizationId, userId);
-  } catch {
+  } catch (caught) {
+    console.error(caught instanceof Error ? new Error(`linked package reconciliation failed: ${caught.message}`) : caught);
     return overview;
   }
 }

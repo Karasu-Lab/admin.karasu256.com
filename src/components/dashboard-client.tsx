@@ -152,7 +152,7 @@ export function DashboardClient({ tenantId }: { tenantId?: string }) {
           </CardContent>
         </Card>
       )}
-      {loading && tenantId && <RepositoryImport organizationId={tenantId} repositories={[]} linkedFullNames={[]} disabled />}
+      {loading && <RepositoryImport organizationId={tenantId} repositories={[]} linkedFullNames={[]} disabled />}
       {!loading && selected && overview?.installation && (
         <RepositoryImport
           organizationId={selected.id}
