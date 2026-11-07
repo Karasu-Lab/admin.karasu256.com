@@ -12,6 +12,7 @@ import {
 } from '@/lib/api-auth';
 import { getClientConfig } from '@/lib/client-config';
 import { getRepositoryAccess, requestSignedCommit } from '@/lib/git-api';
+import { seedMirrorIfNeeded } from '@/lib/mirror-seed';
 import { getTenantNpmRepository, saveTenantNpmRepository } from '@/lib/npm-repository';
 import { registerRepository, repositoryRemote } from '@/lib/repositories';
 
@@ -199,6 +200,7 @@ export async function linkPackageAction(input: {
   }
   let changed = false;
   if (fileChanges.length > 0) {
+    await seedMirrorIfNeeded({ repositoryId: input.repositoryId, repositoryFullName: input.repositoryFullName });
     const result = await requestSignedCommit({
       organizationId: input.organizationId,
       signingUserId: signerUserId,
@@ -226,6 +228,7 @@ export async function linkPackageAction(input: {
   const submodulePath = `packages/${repositoryName}`;
   const addBranch = `feat/add-${repositoryName}-package`;
   const packageHeadOid = await repositoryHeadOid(token.token, input.repositoryFullName, input.defaultBranch);
+  await seedMirrorIfNeeded({ repositoryId: npmRepository.npmRepositoryId, repositoryFullName: npmFullName });
   const addResult = await requestSignedCommit({
     organizationId: input.organizationId,
     signingUserId: signerUserId,
