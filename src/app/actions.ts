@@ -18,6 +18,7 @@ import { seedMirrorIfNeeded } from '@/lib/mirror-seed';
 import { getTenantNpmRepository, saveTenantNpmRepository, type TenantNpmRepository } from '@/lib/npm-repository';
 import type { InstallationRepository, TenantOverview, TenantSummary } from '@/lib/tenants';
 import { registerRepository, repositoryRemote } from '@/lib/repositories';
+import { NPM_REPOSITORY_FILES, packageCiWorkflow, workflowTemplateFiles, type SetupFile } from '@/lib/setup-files';
 
 async function requireUserId(): Promise<string> {
   const user = await getSessionUser(getClientConfig().authApiUrl);
@@ -84,6 +85,8 @@ export async function startNpmSetupAction(input: {
   const userId = await requireUserId();
   const overview = await getTenantOverview(input.organizationId, userId);
   if (!overview.installation) throw new Error('github_app_not_installed');
+  const signingUserId = overview.installation.installedByUserId;
+  if (!signingUserId) throw new Error('signing_user_unknown');
   const owner = overview.installation.targetLogin;
   await saveTenantNpmRepository({
     organizationId: input.organizationId,
@@ -129,6 +132,24 @@ export async function startNpmSetupAction(input: {
     remote: repositoryRemote(templateRepository.fullName),
     isPrivate: templateRepository.private,
   });
+  await seedRepositoryFiles({
+    organizationId: input.organizationId,
+    signingUserId,
+    repository: npmRepository,
+    branch: 'chore/set-up-release-flow',
+    message: 'chore: set up the release flow',
+    pullRequestTitle: 'Set up the release flow',
+    files: NPM_REPOSITORY_FILES,
+  });
+  await seedRepositoryFiles({
+    organizationId: input.organizationId,
+    signingUserId,
+    repository: templateRepository,
+    branch: 'chore/set-up-shared-ci-workflow',
+    message: 'chore: set up the shared CI workflow',
+    pullRequestTitle: 'Set up the shared CI workflow',
+    files: workflowTemplateFiles(templateRepository.fullName),
+  });
   return {
     npmRepositoryFullName: npmRepository.fullName,
     templateRepositoryFullName: templateRepository.fullName,
@@ -137,27 +158,37 @@ export async function startNpmSetupAction(input: {
   };
 }
 
-const CI_WORKFLOW = `name: CI
-
-on:
-  push:
-    branches: [main]
-  pull_request:
-    branches: [main]
-
-jobs:
-  build:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 24
-      - run: corepack enable
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm run --if-present build
-      - run: pnpm run --if-present test
-`;
+async function seedRepositoryFiles(input: {
+  organizationId: string;
+  signingUserId: string;
+  repository: InstallationRepository;
+  branch: string;
+  message: string;
+  pullRequestTitle: string;
+  files: SetupFile[];
+}): Promise<void> {
+  const baseBranch = input.repository.defaultBranch || 'main';
+  await seedMirrorIfNeeded({ repositoryId: input.repository.id, repositoryFullName: input.repository.fullName });
+  const result = await requestSignedCommit({
+    organizationId: input.organizationId,
+    signingUserId: input.signingUserId,
+    repositoryId: input.repository.id,
+    repositoryFullName: input.repository.fullName,
+    branch: input.branch,
+    baseBranch,
+    message: input.message,
+    fileChanges: input.files,
+  });
+  if (result.outcome !== 'pushed') return;
+  await createBotPullRequest({
+    organizationId: input.organizationId,
+    repositoryFullName: input.repository.fullName,
+    title: input.pullRequestTitle,
+    head: input.branch,
+    base: baseBranch,
+    enableAutoMerge: true,
+  });
+}
 
 interface PackageManifest {
   versionNaming?: { pattern?: string };
@@ -217,7 +248,11 @@ export async function linkPackageAction(input: {
   const overview = await getTenantOverview(input.organizationId, userId);
   if (!overview.installation) throw new Error('github_app_not_installed');
   const npmRepository = await getTenantNpmRepository(input.organizationId);
-  if (!npmRepository?.npmRepositoryFullName || npmRepository.npmRepositoryId === null) {
+  if (
+    !npmRepository?.npmRepositoryFullName ||
+    npmRepository.npmRepositoryId === null ||
+    !npmRepository.workflowTemplateRepositoryFullName
+  ) {
     throw new Error('npm_not_configured');
   }
   const signerUserId = overview.installation.installedByUserId;
@@ -259,7 +294,10 @@ export async function linkPackageAction(input: {
     });
   }
   if (!(await repositoryFileExists(token.token, input.repositoryFullName, '.github/workflows/ci.yml'))) {
-    fileChanges.push({ path: '.github/workflows/ci.yml', content: CI_WORKFLOW });
+    fileChanges.push({
+      path: '.github/workflows/ci.yml',
+      content: packageCiWorkflow(npmRepository.workflowTemplateRepositoryFullName),
+    });
   }
   let changed = false;
   if (fileChanges.length > 0) {
