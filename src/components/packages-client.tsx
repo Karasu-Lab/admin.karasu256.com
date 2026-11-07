@@ -29,7 +29,7 @@ export function PackagesClient({ tenantId }: { tenantId?: string }) {
   const signedIn = data?.signedIn ?? false;
   const selected = data?.selected ?? null;
   const overview = data?.overview ?? null;
-  const canManage = data?.role === 'owner' || data?.role === 'admin';
+  const canManage = overview?.organization.role === 'owner' || overview?.organization.role === 'admin';
 
   const handleReregisterWebhook = async () => {
     if (!selected) return;
