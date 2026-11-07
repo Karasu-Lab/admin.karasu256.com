@@ -11,6 +11,11 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
+  Dialog,
+  DialogBackdrop,
+  DialogPopup,
+  DialogPortal,
+  DialogTitle,
   Pagination,
   PaginationContent,
   PaginationEllipsis,
@@ -58,6 +63,7 @@ export function RepositoryImport({
   const router = useRouter();
   const [busyId, setBusyId] = useState<number | null>(null);
   const [justLinkedFullNames, setJustLinkedFullNames] = useState<string[]>([]);
+  const [open, setOpen] = useState(false);
   const [page, setPage] = useState(1);
   const candidates = repositories.filter((repository) => !excludedFullNames?.includes(repository.fullName));
   const pageCount = Math.max(1, Math.ceil(candidates.length / PAGE_SIZE));
@@ -98,76 +104,94 @@ export function RepositoryImport({
         <CardTitle>{t('title')}</CardTitle>
         <CardDescription>{t('description')}</CardDescription>
       </CardHeader>
-      <CardContent className="space-y-3">
-        {!disabled && candidates.length === 0 && <p className="text-sm text-muted-foreground">{t('empty')}</p>}
-        {visibleRepositories.map((repository) => {
-          const linked = linkedFullNames.includes(repository.fullName) || justLinkedFullNames.includes(repository.fullName);
-          return (
-            <div key={repository.id} className="flex items-center gap-2 rounded-md border p-3">
-              <span className="font-medium">{repository.fullName}</span>
-              {linked ? (
-                <Badge variant="secondary" className="ml-auto">
-                  {t('linked')}
-                </Badge>
-              ) : (
-                <Button className="ml-auto" disabled={disabled || busyId === repository.id} onClick={() => link(repository)}>
-                  {busyId === repository.id && <Spinner />}
-                  {busyId === repository.id ? t('linking') : t('link')}
+      <CardContent>
+        <Button disabled={disabled} onClick={() => setOpen(true)}>
+          {t('add')}
+        </Button>
+        <Dialog open={open} onOpenChange={setOpen}>
+          <DialogPortal>
+            <DialogBackdrop />
+            <DialogPopup className="space-y-4 sm:max-w-lg">
+              <DialogTitle>{t('title')}</DialogTitle>
+              <div className="space-y-3">
+                {!disabled && candidates.length === 0 && <p className="text-sm text-muted-foreground">{t('empty')}</p>}
+                {visibleRepositories.map((repository) => {
+                  const linked = linkedFullNames.includes(repository.fullName) || justLinkedFullNames.includes(repository.fullName);
+                  return (
+                    <div key={repository.id} className="flex items-center gap-2 rounded-md border p-3">
+                      <span className="min-w-0 font-medium break-words">{repository.fullName}</span>
+                      {linked ? (
+                        <Badge variant="secondary" className="ml-auto">
+                          {t('linked')}
+                        </Badge>
+                      ) : (
+                        <Button className="ml-auto" disabled={disabled || busyId === repository.id} onClick={() => link(repository)}>
+                          {busyId === repository.id && <Spinner />}
+                          {busyId === repository.id ? t('linking') : t('link')}
+                        </Button>
+                      )}
+                    </div>
+                  );
+                })}
+                {pageCount > 1 && (
+                  <Pagination>
+                    <PaginationContent>
+                      <PaginationItem>
+                        <PaginationPrevious
+                          text={t('previous')}
+                          href="#"
+                          aria-disabled={currentPage === 1}
+                          className={currentPage === 1 ? 'pointer-events-none opacity-50' : undefined}
+                          onClick={(event) => {
+                            event.preventDefault();
+                            setPage(Math.max(1, currentPage - 1));
+                          }}
+                        />
+                      </PaginationItem>
+                      {pageItems(pageCount, currentPage).map((item, index) =>
+                        item === 'ellipsis' ? (
+                          <PaginationItem key={`ellipsis-${index}`}>
+                            <PaginationEllipsis />
+                          </PaginationItem>
+                        ) : (
+                          <PaginationItem key={item}>
+                            <PaginationLink
+                              href="#"
+                              isActive={item === currentPage}
+                              onClick={(event) => {
+                                event.preventDefault();
+                                setPage(item);
+                              }}
+                            >
+                              {item}
+                            </PaginationLink>
+                          </PaginationItem>
+                        )
+                      )}
+                      <PaginationItem>
+                        <PaginationNext
+                          text={t('next')}
+                          href="#"
+                          aria-disabled={currentPage === pageCount}
+                          className={currentPage === pageCount ? 'pointer-events-none opacity-50' : undefined}
+                          onClick={(event) => {
+                            event.preventDefault();
+                            setPage(Math.min(pageCount, currentPage + 1));
+                          }}
+                        />
+                      </PaginationItem>
+                    </PaginationContent>
+                  </Pagination>
+                )}
+              </div>
+              <div className="flex justify-end">
+                <Button variant="outline" onClick={() => setOpen(false)}>
+                  {t('close')}
                 </Button>
-              )}
-            </div>
-          );
-        })}
-        {pageCount > 1 && (
-          <Pagination>
-            <PaginationContent>
-              <PaginationItem>
-                <PaginationPrevious
-                  text={t('previous')}
-                  href="#"
-                  aria-disabled={currentPage === 1}
-                  className={currentPage === 1 ? 'pointer-events-none opacity-50' : undefined}
-                  onClick={(event) => {
-                    event.preventDefault();
-                    setPage(Math.max(1, currentPage - 1));
-                  }}
-                />
-              </PaginationItem>
-              {pageItems(pageCount, currentPage).map((item, index) =>
-                item === 'ellipsis' ? (
-                  <PaginationItem key={`ellipsis-${index}`}>
-                    <PaginationEllipsis />
-                  </PaginationItem>
-                ) : (
-                  <PaginationItem key={item}>
-                    <PaginationLink
-                      href="#"
-                      isActive={item === currentPage}
-                      onClick={(event) => {
-                        event.preventDefault();
-                        setPage(item);
-                      }}
-                    >
-                      {item}
-                    </PaginationLink>
-                  </PaginationItem>
-                )
-              )}
-              <PaginationItem>
-                <PaginationNext
-                  text={t('next')}
-                  href="#"
-                  aria-disabled={currentPage === pageCount}
-                  className={currentPage === pageCount ? 'pointer-events-none opacity-50' : undefined}
-                  onClick={(event) => {
-                    event.preventDefault();
-                    setPage(Math.min(pageCount, currentPage + 1));
-                  }}
-                />
-              </PaginationItem>
-            </PaginationContent>
-          </Pagination>
-        )}
+              </div>
+            </DialogPopup>
+          </DialogPortal>
+        </Dialog>
       </CardContent>
     </Card>
   );

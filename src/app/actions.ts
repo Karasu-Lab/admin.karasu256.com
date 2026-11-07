@@ -23,6 +23,7 @@ import {
 } from '@/lib/npm-repository';
 import type { InstallationRepository, TenantLinkedPackage, TenantOverview, TenantSummary } from '@/lib/tenants';
 import { registerRepository, repositoryRemote, unregisterRepository } from '@/lib/repositories';
+import { getTenantSetupCompleted, markTenantSetupCompleted } from '@/lib/setup-completion';
 import { NPM_REPOSITORY_FILES, packageCiWorkflow, workflowTemplateFiles, type SetupFile } from '@/lib/setup-files';
 
 async function requireUserId(): Promise<string> {
@@ -508,6 +509,13 @@ export interface DashboardData {
   overview: TenantOverview | null;
   npmRepository: TenantNpmRepository | null;
   repositories: InstallationRepository[];
+  setupCompleted: boolean;
+}
+
+export async function markSetupCompletedAction(organizationId: string): Promise<void> {
+  const userId = await requireUserId();
+  await getTenantOverview(organizationId, userId);
+  await markTenantSetupCompleted(organizationId);
 }
 
 async function readRepositorySubmodules(
@@ -604,20 +612,21 @@ async function reconcileLinkedPackages(input: {
 export async function getDashboardDataAction(tenantId?: string): Promise<DashboardData> {
   const user = await getSessionUser(getClientConfig().authApiUrl);
   if (!user) {
-    return { signedIn: false, tenants: [], selected: null, overview: null, npmRepository: null, repositories: [] };
+    return { signedIn: false, tenants: [], selected: null, overview: null, npmRepository: null, repositories: [], setupCompleted: false };
   }
   const tenants = await listUserTenants(user.uid);
   const selected = tenants.find((tenant) => tenant.id === tenantId) ?? tenants[0] ?? null;
   if (!selected) {
-    return { signedIn: true, tenants, selected: null, overview: null, npmRepository: null, repositories: [] };
+    return { signedIn: true, tenants, selected: null, overview: null, npmRepository: null, repositories: [], setupCompleted: false };
   }
-  const [loadedOverview, npmRepository] = await Promise.all([
+  const [loadedOverview, npmRepository, setupCompleted] = await Promise.all([
     getTenantOverview(selected.id, user.uid),
     getTenantNpmRepository(selected.id),
+    getTenantSetupCompleted(selected.id),
   ]);
   const overview = await reconcileLinkedPackages({ organizationId: selected.id, userId: user.uid, overview: loadedOverview, npmRepository });
   const repositories = overview.installation ? await listTenantRepositories(selected.id) : [];
-  return { signedIn: true, tenants, selected, overview, npmRepository, repositories };
+  return { signedIn: true, tenants, selected, overview, npmRepository, repositories, setupCompleted };
 }
 
 export interface SetupData {
