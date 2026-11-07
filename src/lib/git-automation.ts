@@ -35,26 +35,27 @@ export async function withClonedRepository<T>(
   }
 }
 
-export async function configureCommitter(dir: string, identity: SigningIdentity): Promise<void> {
+export async function configureCommitter(
+  dir: string,
+  identity: SigningIdentity,
+  privateKey: string
+): Promise<() => Promise<void>> {
+  const keyDir = await mkdtemp(join(tmpdir(), 'admin-key-'));
+  const keyPath = join(keyDir, 'signing-key');
+  await writeFile(keyPath, privateKey.endsWith('\n') ? privateKey : `${privateKey}\n`, { mode: 0o600 });
   await git(dir, ['config', 'user.name', identity.name]);
   await git(dir, ['config', 'user.email', identity.email]);
-  const privateKey = process.env.COMMIT_SIGNING_PRIVATE_KEY;
-  if (privateKey) {
-    const keyPath = join(await mkdtemp(join(tmpdir(), 'admin-key-')), 'signing-key');
-    await writeFile(keyPath, privateKey.replace(/\\n/g, '\n'), { mode: 0o600 });
-    await git(dir, ['config', 'gpg.format', 'ssh']);
-    await git(dir, ['config', 'user.signingkey', keyPath]);
-  }
-}
-
-export function signingKeyConfigured(): boolean {
-  return Boolean(process.env.COMMIT_SIGNING_PRIVATE_KEY);
+  await git(dir, ['config', 'gpg.format', 'ssh']);
+  await git(dir, ['config', 'user.signingkey', keyPath]);
+  await git(dir, ['config', 'commit.gpgsign', 'true']);
+  return async () => {
+    await rm(keyDir, { recursive: true, force: true });
+  };
 }
 
 export async function commitAll(dir: string, message: string): Promise<string> {
   await git(dir, ['add', '--all']);
-  const signed = signingKeyConfigured();
-  await git(dir, signed ? ['commit', '--quiet', '-S', '-m', message] : ['commit', '--quiet', '-m', message]);
+  await git(dir, ['commit', '--quiet', '-S', '-m', message]);
   return git(dir, ['rev-parse', 'HEAD']);
 }
 

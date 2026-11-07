@@ -93,12 +93,7 @@ export default async function TenantSettingsPage({ params }: { params: Promise<{
               </CardContent>
             </Card>
             <LinkedPackagesSection organizationId={id} packages={overview.linkedPackages} />
-            <SigningKeysSection
-              organizationId={id}
-              authApiUrl={authApiUrl}
-              settingsUrl={settingsUrl}
-              keys={overview.signingKeys}
-            />
+            <SigningKeysSection authApiUrl={authApiUrl} settingsUrl={settingsUrl} keys={overview.signingKeys} />
           </>
         )}
       </main>

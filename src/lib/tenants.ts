@@ -33,7 +33,7 @@ export interface TenantLinkedPackage {
   lastSyncedSha: string | null;
 }
 
-export interface TenantSigningKey {
+export interface UserSigningKey {
   id: string;
   publicKeyId: string;
   name: string;
@@ -49,7 +49,7 @@ export interface TenantOverview {
   installation: TenantInstallation | null;
   npmConfiguration: TenantNpmConfiguration | null;
   linkedPackages: TenantLinkedPackage[];
-  signingKeys: TenantSigningKey[];
+  signingKeys: UserSigningKey[];
 }
 
 export interface InstallationRepository {

@@ -10,6 +10,7 @@ import {
   createTenantRepository,
   getInstallationToken,
   getTenantOverview,
+  getUserSigningKeyMaterial,
   linkTenantPackage,
   recordNpmConfiguration,
   setTenantPackageEnabled,
@@ -22,11 +23,15 @@ async function requireUserId(): Promise<string> {
   return user.uid;
 }
 
-async function requireCommitter(): Promise<{ name: string; email: string }> {
-  const user = await getSessionUser(process.env.NEXT_PUBLIC_AUTH_API_URL);
-  if (!user) throw new Error('Unauthorized');
-  if (!user.name || !user.email) throw new Error('A name and email are required to create signed commits');
-  return { name: user.name, email: user.email };
+async function requireSigningMaterial(userId: string): Promise<{
+  identity: { name: string; email: string };
+  privateKey: string;
+}> {
+  const material = await getUserSigningKeyMaterial(userId);
+  return {
+    identity: { name: material.committerName, email: material.committerEmail },
+    privateKey: material.privateKey,
+  };
 }
 
 export async function startNpmSetupAction(input: {
@@ -111,10 +116,12 @@ export async function linkPackageAction(input: {
   defaultBranch: string;
 }): Promise<{ versionNaming: string }> {
   const userId = await requireUserId();
-  const committer = await requireCommitter();
   const overview = await getTenantOverview(input.organizationId, userId);
   if (!overview.installation) throw new Error('github_app_not_installed');
   if (!overview.npmConfiguration) throw new Error('npm_not_configured');
+  const signerUserId = overview.installation.installedByUserId;
+  if (!signerUserId) throw new Error('signing_user_unknown');
+  const signer = await requireSigningMaterial(signerUserId);
   const token = await getInstallationToken(input.organizationId);
   const manifest = await readManifest(token.token, input.repositoryFullName);
   if (!manifest) throw new Error('package_json_not_found');
@@ -141,8 +148,12 @@ export async function linkPackageAction(input: {
     }
     if (!dirty) return false;
     await createBranch(dir, setupBranch);
-    await configureCommitter(dir, committer);
-    await commitAll(dir, 'chore: set up CI and the version naming scheme');
+    const cleanupKey = await configureCommitter(dir, signer.identity, signer.privateKey);
+    try {
+      await commitAll(dir, 'chore: set up CI and the version naming scheme');
+    } finally {
+      await cleanupKey();
+    }
     await pushBranch(dir, setupBranch);
     return true;
   });
@@ -174,8 +185,12 @@ export async function linkPackageAction(input: {
       `submodule.packages/${repositoryName}.url`,
       `https://github.com/${input.repositoryFullName}.git`,
     ]);
-    await configureCommitter(dir, committer);
-    await commitAll(dir, `feat: add ${input.repositoryFullName} as a package`);
+    const cleanupKey = await configureCommitter(dir, signer.identity, signer.privateKey);
+    try {
+      await commitAll(dir, `feat: add ${input.repositoryFullName} as a package`);
+    } finally {
+      await cleanupKey();
+    }
     await pushBranch(dir, addBranch);
   });
   const npmDefaultBranch = 'main';

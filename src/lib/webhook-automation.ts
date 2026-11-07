@@ -1,7 +1,13 @@
 import 'server-only';
 import { join } from 'node:path';
-import { createBotPullRequest, getInstallationToken, updateLinkedPackagePointer, type PushWebhookDecision } from './api-auth';
-import { commitAll, configureCommitter, createBranch, git, pushBranch, signingKeyConfigured, withClonedRepository } from './git-automation';
+import {
+  createBotPullRequest,
+  getInstallationToken,
+  getUserSigningKeyMaterial,
+  updateLinkedPackagePointer,
+  type PushWebhookDecision,
+} from './api-auth';
+import { commitAll, configureCommitter, createBranch, git, pushBranch, withClonedRepository } from './git-automation';
 
 export interface PointerUpdateResult {
   automated: boolean;
@@ -15,13 +21,18 @@ export async function runPointerUpdate(
 ): Promise<PointerUpdateResult> {
   const organizationId = decision.organizationId!;
   const linked = decision.package!;
-  if (signingKeyConfigured() && (!decision.signingKeyOwner?.name || !decision.signingKeyOwner?.email)) {
-    return { automated: false, reason: 'signing_key_owner_incomplete' };
+  const signingUserId = decision.signingUserId;
+  if (!signingUserId) return { automated: false, reason: 'signing_user_unknown' };
+  let material;
+  try {
+    material = await getUserSigningKeyMaterial(signingUserId);
+  } catch (error) {
+    return {
+      automated: false,
+      reason: `signing_key_unavailable: ${error instanceof Error ? error.message : String(error)}`,
+    };
   }
-  const identity = {
-    name: decision.signingKeyOwner?.name ?? 'Karasu Lab Admin',
-    email: decision.signingKeyOwner?.email ?? 'admin@karasu256.com',
-  };
+  const identity = { name: material.committerName, email: material.committerEmail };
   const { token } = await getInstallationToken(organizationId);
   const repositoryName = linked.repositoryFullName.split('/')[1] ?? linked.repositoryFullName;
   const branch = `chore/bump-${repositoryName}-${afterSha.slice(0, 7)}`;
@@ -35,8 +46,12 @@ export async function runPointerUpdate(
       const current = await git(submoduleDir, ['rev-parse', 'HEAD']);
       if (current === afterSha) return 'already_synced' as const;
       await git(submoduleDir, ['checkout', '--quiet', afterSha]);
-      await configureCommitter(dir, identity);
-      await commitAll(dir, `chore: bump ${linked.repositoryFullName} to ${afterSha.slice(0, 7)}`);
+      const cleanupKey = await configureCommitter(dir, identity, material.privateKey);
+      try {
+        await commitAll(dir, `chore: bump ${linked.repositoryFullName} to ${afterSha.slice(0, 7)}`);
+      } finally {
+        await cleanupKey();
+      }
       await pushBranch(dir, branch);
       return 'pushed' as const;
     },

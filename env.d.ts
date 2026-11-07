@@ -11,7 +11,6 @@ declare global {
       AUTH_API_URL?: string;
       INTERNAL_API_SECRET?: string;
       GITHUB_APP_WEBHOOK_SECRET?: string;
-      COMMIT_SIGNING_PRIVATE_KEY?: string;
     }
   }
 }

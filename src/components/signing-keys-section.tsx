@@ -19,20 +19,19 @@ import {
   Input,
   Switch,
 } from '@karasu-lab/ui';
-import type { TenantSigningKey } from '@/lib/tenants';
+import type { UserSigningKey } from '@/lib/tenants';
 
 interface SigningKeysSectionProps {
-  organizationId: string;
   authApiUrl: string;
   settingsUrl: string;
-  keys: TenantSigningKey[];
+  keys: UserSigningKey[];
 }
 
 interface SessionResponse {
   session?: { id?: string } | null;
 }
 
-export function SigningKeysSection({ organizationId, authApiUrl, settingsUrl, keys }: SigningKeysSectionProps) {
+export function SigningKeysSection({ authApiUrl, settingsUrl, keys }: SigningKeysSectionProps) {
   const t = useTranslations('SigningKeys');
   const router = useRouter();
   const [sessionId, setSessionId] = useState<string | null>(null);
@@ -62,7 +61,7 @@ export function SigningKeysSection({ organizationId, authApiUrl, settingsUrl, ke
     const response = await fetch(`${authApiUrl}${path}`, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ sessionId, organizationId, ...body }),
+      body: JSON.stringify({ sessionId, ...body }),
     });
     const data = (await response.json().catch(() => ({}))) as Record<string, unknown>;
     if (!response.ok) throw new Error(typeof data.error === 'string' ? data.error : `http_${response.status}`);
@@ -84,9 +83,13 @@ export function SigningKeysSection({ organizationId, authApiUrl, settingsUrl, ke
   const create = () =>
     run(async () => {
       const data = await call('/api/signing-keys', { name: newName });
-      setSaved(false);
-      setPrivateKey(typeof data.privateKey === 'string' ? data.privateKey : null);
       setNewName('');
+      if (typeof data.privateKey === 'string') {
+        setSaved(false);
+        setPrivateKey(data.privateKey);
+      } else {
+        router.refresh();
+      }
     });
 
   const rotate = (keyId: string) =>
@@ -108,7 +111,7 @@ export function SigningKeysSection({ organizationId, authApiUrl, settingsUrl, ke
       router.refresh();
     });
 
-  const authorizeUrl = `${authApiUrl}/api/signing-keys/authorize?organizationId=${encodeURIComponent(organizationId)}&returnTo=${encodeURIComponent(settingsUrl)}`;
+  const authorizeUrl = `${authApiUrl}/api/signing-keys/authorize?returnTo=${encodeURIComponent(settingsUrl)}`;
 
   return (
     <Card>
@@ -194,7 +197,7 @@ function KeyRow({
   onRename,
   onToggle,
 }: {
-  signingKey: TenantSigningKey;
+  signingKey: UserSigningKey;
   busy: boolean;
   sessionReady: boolean;
   onRotate: () => void;

@@ -95,6 +95,21 @@ export async function setTenantPackageEnabled(
   await apiAuthJson(`/api/internal/tenants/${organizationId}/packages/${packageId}/enabled`, { method: 'POST', body });
 }
 
+export interface SigningKeyMaterial {
+  userId: string;
+  privateKey: string;
+  publicKey: string;
+  committerName: string;
+  committerEmail: string;
+}
+
+export async function getUserSigningKeyMaterial(userId: string): Promise<SigningKeyMaterial> {
+  return apiAuthJson<SigningKeyMaterial>(`/api/internal/users/${encodeURIComponent(userId)}/signing-key-material`, {
+    method: 'POST',
+    body: {},
+  });
+}
+
 export async function getInstallationToken(organizationId: string): Promise<{ token: string; expiresAt: string }> {
   return apiAuthJson(`/api/internal/tenants/${organizationId}/github-installation-token`, { method: 'POST', body: {} });
 }
@@ -127,6 +142,7 @@ export interface PushWebhookDecision {
   reason?: string;
   organizationId?: string;
   installationId?: number;
+  signingUserId?: string;
   package?: { id: string; repositoryFullName: string; submodulePath: string; lastSyncedSha: string | null };
   npmRepositoryFullName?: string;
   signingKeyOwner?: { name: string | null; email: string | null } | null;
