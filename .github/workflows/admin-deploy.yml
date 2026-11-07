@@ -129,6 +129,7 @@ jobs:
       API_URL: ${{ vars.API_URL }}
       INTERNAL_API_SECRET: ${{ secrets.INTERNAL_API_SECRET }}
       BETTER_AUTH_SECRET: ${{ secrets.BETTER_AUTH_SECRET }}
+      GH_APP_WEBHOOK_SECRET: ${{ secrets.GH_APP_WEBHOOK_SECRET }}
     steps:
       - name: Deploy the worker
         uses: Karasu-Lab/WorkersDeploy@v1
@@ -151,6 +152,7 @@ jobs:
       API_URL: ${{ vars.API_URL }}
       INTERNAL_API_SECRET: ${{ secrets.INTERNAL_API_SECRET }}
       BETTER_AUTH_SECRET: ${{ secrets.BETTER_AUTH_SECRET }}
+      GH_APP_WEBHOOK_SECRET: ${{ secrets.GH_APP_WEBHOOK_SECRET }}
     steps:
       - name: Deploy the worker
         uses: Karasu-Lab/WorkersDeploy@v1

@@ -113,7 +113,7 @@ export function PackagesClient({ tenantId }: { tenantId?: string }) {
               </div>
             )}
             <div className="flex gap-2">
-              <Button onClick={() => void handleReregisterWebhook()} disabled={loading || !canManage || !webhookSecret || reregistering || rotating}>
+              <Button onClick={() => void handleReregisterWebhook()} disabled={loading || !canManage || reregistering || rotating}>
                 {reregistering && <Spinner />}
                 {reregistering ? t('webhookReregistering') : t('webhookReregister')}
               </Button>
