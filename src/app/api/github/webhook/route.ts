@@ -2,7 +2,8 @@ import { createHmac, timingSafeEqual } from 'node:crypto';
 import { githubInstallationWebhookPayloadSchema, githubPushWebhookPayloadSchema } from '@karasu-lab/types/shared';
 import { applyInstallationWebhook, evaluatePushWebhook } from '@/lib/api-auth';
 import { getTenantNpmRepository } from '@/lib/npm-repository';
-import { runPointerUpdate } from '@/lib/webhook-automation';
+import { finishPackageUpdate, startPackageUpdate } from '@/lib/update-events';
+import { runPointerUpdate, type PointerUpdateResult } from '@/lib/webhook-automation';
 
 export const runtime = 'nodejs';
 
@@ -73,6 +74,43 @@ export async function POST(request: Request): Promise<Response> {
   if (!npmRepository?.npmRepositoryFullName) {
     return Response.json({ accepted: false, reason: 'npm_not_configured' }, { status: 202 });
   }
-  const result = await runPointerUpdate({ ...decision, accepted: true }, npmRepository, parsed.data.after);
+  let updateEventId: string | null = null;
+  if (decision.package) {
+    try {
+      updateEventId = await startPackageUpdate({
+        organizationId: decision.organizationId,
+        packageId: decision.package.id,
+        repositoryFullName: decision.package.repositoryFullName,
+        fromSha: decision.package.lastSyncedSha,
+        toSha: parsed.data.after,
+      });
+    } catch (error) {
+      console.error(error instanceof Error ? new Error(`failed to record the package update start: ${error.message}`) : error);
+    }
+  }
+  let result: PointerUpdateResult;
+  try {
+    result = await runPointerUpdate({ ...decision, accepted: true }, npmRepository, parsed.data.after);
+  } catch (error) {
+    if (updateEventId) {
+      await finishPackageUpdate(
+        updateEventId,
+        decision.organizationId,
+        'failed',
+        error instanceof Error ? error.message : String(error)
+      ).catch((caught) => {
+        console.error(caught instanceof Error ? new Error(`failed to record the package update failure: ${caught.message}`) : caught);
+      });
+    }
+    throw error;
+  }
+  if (updateEventId) {
+    const status = result.automated || result.reason === 'already_synced' ? 'completed' : 'failed';
+    await finishPackageUpdate(updateEventId, decision.organizationId, status, status === 'failed' ? result.reason : undefined).catch(
+      (caught) => {
+        console.error(caught instanceof Error ? new Error(`failed to record the package update result: ${caught.message}`) : caught);
+      }
+    );
+  }
   return Response.json(result, { status: 202 });
 }

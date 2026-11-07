@@ -24,6 +24,15 @@ import {
 import type { InstallationRepository, TenantLinkedPackage, TenantOverview, TenantSummary } from '@/lib/tenants';
 import { registerRepository, repositoryRemote, unregisterRepository } from '@/lib/repositories';
 import { getTenantSetupCompleted, markTenantSetupCompleted } from '@/lib/setup-completion';
+import { getLiveFeed, type LiveFeedData } from '@/lib/update-events';
+
+export type { LiveFeedData, PackageUpdateEvent } from '@/lib/update-events';
+
+export async function getLiveFeedAction(organizationId: string): Promise<LiveFeedData> {
+  const userId = await requireUserId();
+  await getTenantOverview(organizationId, userId);
+  return getLiveFeed(organizationId);
+}
 import { NPM_REPOSITORY_FILES, packageCiWorkflow, workflowTemplateFiles, type SetupFile } from '@/lib/setup-files';
 
 async function requireUserId(): Promise<string> {
