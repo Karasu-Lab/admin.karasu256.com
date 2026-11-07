@@ -3,7 +3,7 @@ import { MissingEnvError, signRequest } from '@karasu-lab/utils/server';
 import type { InstallationRepository, TenantOverview, TenantSummary } from './tenants';
 
 function apiAuthBaseUrl(): string {
-  const base = process.env.AUTH_API_URL ?? process.env.NEXT_PUBLIC_AUTH_API_URL;
+  const base = process.env.AUTH_API_URL;
   if (!base) throw new MissingEnvError('AUTH_API_URL');
   return base.replace(/\/+$/, '');
 }
@@ -61,19 +61,6 @@ export async function createTenantRepository(
   return data.repository;
 }
 
-export async function recordNpmConfiguration(
-  organizationId: string,
-  body: {
-    userId: string;
-    npmRepositoryId: number;
-    npmRepositoryFullName: string;
-    workflowTemplateRepositoryId: number;
-    workflowTemplateRepositoryFullName: string;
-  }
-): Promise<void> {
-  await apiAuthJson(`/api/internal/tenants/${organizationId}/npm-configuration`, { method: 'POST', body });
-}
-
 export async function linkTenantPackage(
   organizationId: string,
   body: {
@@ -93,21 +80,6 @@ export async function setTenantPackageEnabled(
   body: { userId: string; enabled: boolean }
 ): Promise<void> {
   await apiAuthJson(`/api/internal/tenants/${organizationId}/packages/${packageId}/enabled`, { method: 'POST', body });
-}
-
-export interface SigningKeyMaterial {
-  userId: string;
-  privateKey: string;
-  publicKey: string;
-  committerName: string;
-  committerEmail: string;
-}
-
-export async function getUserSigningKeyMaterial(userId: string): Promise<SigningKeyMaterial> {
-  return apiAuthJson<SigningKeyMaterial>(`/api/internal/users/${encodeURIComponent(userId)}/signing-key-material`, {
-    method: 'POST',
-    body: {},
-  });
 }
 
 export async function getInstallationToken(organizationId: string): Promise<{ token: string; expiresAt: string }> {
@@ -144,7 +116,6 @@ export interface PushWebhookDecision {
   installationId?: number;
   signingUserId?: string;
   package?: { id: string; repositoryFullName: string; submodulePath: string; lastSyncedSha: string | null };
-  npmRepositoryFullName?: string;
   signingKeyOwner?: { name: string | null; email: string | null } | null;
 }
 

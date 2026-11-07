@@ -1,6 +1,7 @@
 import { createHmac, timingSafeEqual } from 'node:crypto';
 import { githubPushWebhookPayloadSchema } from '@karasu-lab/types/shared';
 import { evaluatePushWebhook } from '@/lib/api-auth';
+import { getTenantNpmRepository } from '@/lib/npm-repository';
 import { runPointerUpdate } from '@/lib/webhook-automation';
 
 export const runtime = 'nodejs';
@@ -46,9 +47,21 @@ export async function POST(request: Request): Promise<Response> {
     repositoryFullName: parsed.data.repository.full_name,
     afterSha: parsed.data.after,
   });
-  if (!decision.accepted) {
+  if (!decision.accepted || !decision.organizationId) {
     return Response.json({ accepted: false, reason: decision.reason ?? 'not_accepted' }, { status: 202 });
   }
-  const result = await runPointerUpdate({ ...decision, accepted: true }, parsed.data.after);
+  let npmRepository;
+  try {
+    npmRepository = await getTenantNpmRepository(decision.organizationId);
+  } catch (error) {
+    return Response.json(
+      { accepted: false, reason: `npm_repository_lookup_failed: ${error instanceof Error ? error.message : String(error)}` },
+      { status: 202 }
+    );
+  }
+  if (!npmRepository?.npmRepositoryFullName) {
+    return Response.json({ accepted: false, reason: 'npm_not_configured' }, { status: 202 });
+  }
+  const result = await runPointerUpdate({ ...decision, accepted: true }, npmRepository, parsed.data.after);
   return Response.json(result, { status: 202 });
 }

@@ -16,13 +16,6 @@ export interface TenantInstallation {
   installedByUserId: string | null;
 }
 
-export interface TenantNpmConfiguration {
-  npmRepositoryId: number;
-  npmRepositoryFullName: string;
-  workflowTemplateRepositoryId: number;
-  workflowTemplateRepositoryFullName: string;
-}
-
 export interface TenantLinkedPackage {
   id: string;
   repositoryId: number;
@@ -47,7 +40,6 @@ export interface UserSigningKey {
 export interface TenantOverview {
   organization: { id: string; name: string; slug: string; role: string };
   installation: TenantInstallation | null;
-  npmConfiguration: TenantNpmConfiguration | null;
   linkedPackages: TenantLinkedPackage[];
   signingKeys: UserSigningKey[];
 }

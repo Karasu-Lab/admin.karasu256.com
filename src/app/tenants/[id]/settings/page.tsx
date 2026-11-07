@@ -6,22 +6,32 @@ import { NavSidebar } from '@/components/nav-sidebar';
 import { LinkedPackagesSection } from '@/components/linked-packages-section';
 import { SigningKeysSection } from '@/components/signing-keys-section';
 import { getTenantOverview } from '@/lib/api-auth';
+import { getClientConfig } from '@/lib/client-config';
+import { getTenantNpmRepository, type TenantNpmRepository } from '@/lib/npm-repository';
 import type { TenantOverview } from '@/lib/tenants';
 
 export default async function TenantSettingsPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const t = await getTranslations('TenantSettings');
-  const user = await getSessionUser(process.env.NEXT_PUBLIC_AUTH_API_URL);
-  const authApiUrl = process.env.NEXT_PUBLIC_AUTH_API_URL;
-  const settingsUrl = `${process.env.NEXT_PUBLIC_APP_URL}/tenants/${id}/settings`;
+  const clientConfig = getClientConfig();
+  const user = await getSessionUser(clientConfig.authApiUrl);
+  const authApiUrl = clientConfig.authApiUrl;
+  const settingsUrl = `${clientConfig.appUrl}/tenants/${id}/settings`;
 
   let overview: TenantOverview | null = null;
   let loadError: string | null = null;
+  let npmRepository: TenantNpmRepository | null = null;
+  let npmLoadError: string | null = null;
   if (user) {
     try {
       overview = await getTenantOverview(id, user.uid);
     } catch (error) {
       loadError = error instanceof Error ? error.message : String(error);
+    }
+    try {
+      npmRepository = await getTenantNpmRepository(id);
+    } catch (error) {
+      npmLoadError = error instanceof Error ? error.message : String(error);
     }
   } else {
     loadError = 'unauthorized';
@@ -73,13 +83,17 @@ export default async function TenantSettingsPage({ params }: { params: Promise<{
                 <CardTitle>{t('npm')}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-2">
-                {overview.npmConfiguration ? (
+                {npmLoadError ? (
+                  <p className="text-sm text-destructive">
+                    {t('loadError')}: {npmLoadError}
+                  </p>
+                ) : npmRepository?.npmRepositoryFullName ? (
                   <>
                     <p className="text-sm">
-                      {t('npmRepository')}: {overview.npmConfiguration.npmRepositoryFullName}
+                      {t('npmRepository')}: {npmRepository.npmRepositoryFullName}
                     </p>
                     <p className="text-sm">
-                      {t('templateRepository')}: {overview.npmConfiguration.workflowTemplateRepositoryFullName}
+                      {t('templateRepository')}: {npmRepository.workflowTemplateRepositoryFullName}
                     </p>
                   </>
                 ) : (

@@ -6,7 +6,7 @@ import { DropdownMenuItem, DropdownMenuSeparator } from '@karasu-lab/ui';
 import type { TenantSummary } from '@/lib/tenants';
 import { CreateTenantDialog } from './create-tenant-dialog';
 
-export function TenantMenuSection({ tenants }: { tenants: TenantSummary[] }) {
+export function TenantMenuSection({ tenants, authApiUrl }: { tenants: TenantSummary[]; authApiUrl: string }) {
   const t = useTranslations('header');
   const [dialogOpen, setDialogOpen] = useState(false);
   return (
@@ -22,7 +22,7 @@ export function TenantMenuSection({ tenants }: { tenants: TenantSummary[] }) {
         </DropdownMenuItem>
       ))}
       <DropdownMenuItem onClick={() => setDialogOpen(true)}>{t('addTenant')}</DropdownMenuItem>
-      <CreateTenantDialog open={dialogOpen} onOpenChange={setDialogOpen} />
+      <CreateTenantDialog open={dialogOpen} onOpenChange={setDialogOpen} authApiUrl={authApiUrl} />
     </>
   );
 }

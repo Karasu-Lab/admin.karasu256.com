@@ -1,0 +1,47 @@
+name: Admin Deploy
+
+on:
+  push:
+    branches: ["**"]
+  workflow_dispatch:
+
+# Deployment itself lives in Karasu-Lab/WorkersDeploy: it deploys this
+# app standalone from this repository, detects the Next.js project,
+# builds it with OpenNext, and deploys it to Cloudflare Workers.
+
+jobs:
+  deploy:
+    if: github.ref_name == 'main'
+    environment: production
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: read
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+      NODE_AUTH_TOKEN: ${{ secrets.NODE_AUTH_TOKEN || secrets.GITHUB_TOKEN }}
+    steps:
+      - name: Deploy the worker
+        uses: Karasu-Lab/WorkersDeploy@v1
+        with:
+          mode: production
+          worker-name: admin-karasu256-com
+
+  preview:
+    if: github.ref_name != 'main'
+    environment: preview
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: read
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+      NODE_AUTH_TOKEN: ${{ secrets.NODE_AUTH_TOKEN || secrets.GITHUB_TOKEN }}
+    steps:
+      - name: Deploy the worker
+        uses: Karasu-Lab/WorkersDeploy@v1
+        with:
+          mode: preview
+          worker-name: admin-karasu256-com

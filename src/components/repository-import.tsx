@@ -32,6 +32,7 @@ export function RepositoryImport({
         repositoryId: repository.id,
         repositoryFullName: repository.fullName,
         defaultBranch: repository.defaultBranch,
+        private: repository.private,
       });
       router.refresh();
     } catch (caught) {

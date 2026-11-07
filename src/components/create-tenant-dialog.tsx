@@ -8,6 +8,7 @@ import { Button, Dialog, DialogBackdrop, DialogPopup, DialogPortal, DialogTitle,
 interface CreateTenantDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  authApiUrl: string;
 }
 
 function slugify(value: string): string {
@@ -18,7 +19,7 @@ function slugify(value: string): string {
     .replace(/^-+|-+$/g, '');
 }
 
-export function CreateTenantDialog({ open, onOpenChange }: CreateTenantDialogProps) {
+export function CreateTenantDialog({ open, onOpenChange, authApiUrl }: CreateTenantDialogProps) {
   const t = useTranslations('Tenants');
   const router = useRouter();
   const [name, setName] = useState('');
@@ -32,7 +33,7 @@ export function CreateTenantDialog({ open, onOpenChange }: CreateTenantDialogPro
     setError(null);
     try {
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_AUTH_API_URL}/api/auth/organization/create`,
+        `${authApiUrl}/api/auth/organization/create`,
         {
           method: 'POST',
           credentials: 'include',

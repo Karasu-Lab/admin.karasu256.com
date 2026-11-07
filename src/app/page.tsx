@@ -5,6 +5,8 @@ import { getSessionUser } from '@karasu-lab/utils/server';
 import { NavSidebar } from '@/components/nav-sidebar';
 import { RepositoryImport } from '@/components/repository-import';
 import { getTenantOverview, listTenantRepositories, listUserTenants } from '@/lib/api-auth';
+import { getClientConfig } from '@/lib/client-config';
+import { getTenantNpmRepository, type TenantNpmRepository } from '@/lib/npm-repository';
 import type { InstallationRepository, TenantOverview, TenantSummary } from '@/lib/tenants';
 
 interface Step {
@@ -22,7 +24,7 @@ export default async function Home({
 }) {
   const t = await getTranslations('Dashboard');
   const tOnboarding = await getTranslations('Onboarding');
-  const user = await getSessionUser(process.env.NEXT_PUBLIC_AUTH_API_URL);
+  const user = await getSessionUser(getClientConfig().authApiUrl);
 
   if (!user) {
     return (
@@ -49,11 +51,17 @@ export default async function Home({
 
   let overview: TenantOverview | null = null;
   let overviewError: string | null = null;
+  let npmRepository: TenantNpmRepository | null = null;
   let repositories: InstallationRepository[] = [];
   let repositoriesError: string | null = null;
   if (selected) {
     try {
       overview = await getTenantOverview(selected.id, user.uid);
+    } catch (error) {
+      overviewError = error instanceof Error ? error.message : String(error);
+    }
+    try {
+      npmRepository = await getTenantNpmRepository(selected.id);
     } catch (error) {
       overviewError = error instanceof Error ? error.message : String(error);
     }
@@ -88,14 +96,14 @@ export default async function Home({
       hrefLabel: tOnboarding('startSetup'),
     },
     {
-      done: Boolean(overview?.npmConfiguration),
+      done: Boolean(npmRepository?.npmRepositoryFullName),
       title: tOnboarding('npmRepository'),
       description: tOnboarding('npmRepositoryDescription'),
       href: selected ? `/npm-setup?tenant=${selected.id}` : undefined,
       hrefLabel: tOnboarding('startSetup'),
     },
     {
-      done: Boolean(overview?.npmConfiguration),
+      done: Boolean(npmRepository?.workflowTemplateRepositoryFullName),
       title: tOnboarding('templateRepository'),
       description: tOnboarding('templateRepositoryDescription'),
       href: selected ? `/npm-setup?tenant=${selected.id}` : undefined,

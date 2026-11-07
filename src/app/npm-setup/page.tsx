@@ -4,6 +4,8 @@ import { getSessionUser } from '@karasu-lab/utils/server';
 import { NavSidebar } from '@/components/nav-sidebar';
 import { NpmSetupForm } from '@/components/npm-setup-form';
 import { getTenantOverview, listUserTenants } from '@/lib/api-auth';
+import { getClientConfig } from '@/lib/client-config';
+import { getTenantNpmRepository, type TenantNpmRepository } from '@/lib/npm-repository';
 import type { TenantOverview, TenantSummary } from '@/lib/tenants';
 
 export default async function NpmSetupPage({
@@ -12,7 +14,7 @@ export default async function NpmSetupPage({
   searchParams?: Promise<{ tenant?: string }>;
 }) {
   const t = await getTranslations('NpmSetup');
-  const user = await getSessionUser(process.env.NEXT_PUBLIC_AUTH_API_URL);
+  const user = await getSessionUser(getClientConfig().authApiUrl);
 
   let tenants: TenantSummary[] = [];
   let loadError: string | null = null;
@@ -28,13 +30,21 @@ export default async function NpmSetupPage({
   const selected = tenants.find((tenant) => tenant.id === params.tenant) ?? tenants[0] ?? null;
 
   let overview: TenantOverview | null = null;
+  let npmRepository: TenantNpmRepository | null = null;
   if (user && selected) {
     try {
       overview = await getTenantOverview(selected.id, user.uid);
     } catch (error) {
       loadError = error instanceof Error ? error.message : String(error);
     }
+    try {
+      npmRepository = await getTenantNpmRepository(selected.id);
+    } catch (error) {
+      loadError = error instanceof Error ? error.message : String(error);
+    }
   }
+
+  const alreadyDone = Boolean(npmRepository?.npmRepositoryFullName && npmRepository?.workflowTemplateRepositoryFullName);
 
   return (
     <div className="flex min-h-screen">
@@ -53,19 +63,22 @@ export default async function NpmSetupPage({
         {selected && overview && !overview.installation && (
           <p className="text-muted-foreground">{t('noTenant')}</p>
         )}
-        {selected && overview?.npmConfiguration && (
+        {selected && alreadyDone && (
           <Card>
             <CardContent className="space-y-2 pt-6">
               <p>{t('alreadyDone')}</p>
               <p className="text-sm text-muted-foreground">
-                {overview.npmConfiguration.npmRepositoryFullName} ·{' '}
-                {overview.npmConfiguration.workflowTemplateRepositoryFullName}
+                {npmRepository?.npmRepositoryFullName} · {npmRepository?.workflowTemplateRepositoryFullName}
               </p>
             </CardContent>
           </Card>
         )}
-        {selected && overview?.installation && !overview.npmConfiguration && (
-          <NpmSetupForm organizationId={selected.id} />
+        {selected && overview?.installation && !loadError && !alreadyDone && (
+          <NpmSetupForm
+            organizationId={selected.id}
+            initialNpmRepositoryName={npmRepository?.npmRepositoryName}
+            initialTemplateRepositoryName={npmRepository?.workflowTemplateRepositoryName}
+          />
         )}
       </main>
     </div>

@@ -3,6 +3,7 @@ import { getLocale, getTranslations } from 'next-intl/server';
 import { Header as UiHeader, AccountMenu, type CountryCode } from '@karasu-lab/ui';
 import { getRootAppUrl, getSessionUser, getSignInUrl, signOutAction, setLocaleAction } from '@karasu-lab/utils/server';
 import { listUserTenants } from '@/lib/api-auth';
+import { getClientConfig } from '@/lib/client-config';
 import type { TenantSummary } from '@/lib/tenants';
 import { TenantMenuSection } from './tenant-menu-section';
 
@@ -12,11 +13,12 @@ const localeLabels: Record<'en' | 'ja', { label: string; countryCode: CountryCod
 };
 
 export async function Header() {
-  const signInUrl = await getSignInUrl(process.env.NEXT_PUBLIC_AUTH_URL);
+  const clientConfig = getClientConfig();
+  const signInUrl = await getSignInUrl(clientConfig.authUrl);
   const rootUrl = await getRootAppUrl();
   const t = await getTranslations('header');
   const currentLocale = await getLocale();
-  const user = await getSessionUser(process.env.NEXT_PUBLIC_AUTH_API_URL);
+  const user = await getSessionUser(clientConfig.authApiUrl);
   let tenants: TenantSummary[] = [];
   if (user) {
     try {
@@ -44,7 +46,7 @@ export async function Header() {
         labels={{ signIn: t('signIn'), settings: t('settings'), signOut: t('signOut') }}
         triggerAriaLabel={t('accountMenuLabel')}
       >
-        {user ? <TenantMenuSection tenants={tenants} /> : null}
+        {user ? <TenantMenuSection tenants={tenants} authApiUrl={clientConfig.authApiUrl} /> : null}
       </AccountMenu>
     </UiHeader>
   );

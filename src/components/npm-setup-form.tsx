@@ -6,11 +6,19 @@ import { useTranslations } from 'next-intl';
 import { Button, Card, CardContent, CardDescription, CardHeader, CardTitle, Input, Label } from '@karasu-lab/ui';
 import { startNpmSetupAction } from '@/app/actions';
 
-export function NpmSetupForm({ organizationId }: { organizationId: string }) {
+export function NpmSetupForm({
+  organizationId,
+  initialNpmRepositoryName,
+  initialTemplateRepositoryName,
+}: {
+  organizationId: string;
+  initialNpmRepositoryName?: string;
+  initialTemplateRepositoryName?: string;
+}) {
   const t = useTranslations('NpmSetup');
   const router = useRouter();
-  const [npmName, setNpmName] = useState('npm');
-  const [templateName, setTemplateName] = useState('workflow-templates');
+  const [npmName, setNpmName] = useState(initialNpmRepositoryName ?? 'npm');
+  const [templateName, setTemplateName] = useState(initialTemplateRepositoryName ?? 'workflow-templates');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
