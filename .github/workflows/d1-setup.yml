@@ -1,7 +1,9 @@
 name: D1 Setup (temporary)
 
 on:
-  workflow_dispatch:
+  push:
+    branches: [feat/tenant-admin]
+    paths: [.github/workflows/d1-setup.yml]
 
 jobs:
   create:
