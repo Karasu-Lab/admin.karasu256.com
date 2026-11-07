@@ -51,6 +51,8 @@ export function NpmSetupClient({ tenantId }: { tenantId?: string }) {
       {(loading || (selected && overview?.installation && !alreadyDone)) && (
         <NpmSetupForm
           organizationId={selected?.id ?? ''}
+          owner={overview?.installation?.targetLogin}
+          existingRepositories={data?.repositories ?? []}
           initialNpmRepositoryName={npmRepository?.npmRepositoryName}
           initialTemplateRepositoryName={npmRepository?.workflowTemplateRepositoryName}
           disabled={loading}
