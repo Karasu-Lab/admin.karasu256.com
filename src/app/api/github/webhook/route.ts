@@ -21,6 +21,7 @@ export const runtime = 'nodejs';
 
 const PUBLISH_WORKFLOW_NAME = 'Publish packages';
 const PUBLISH_STATUS_CONTEXT = 'Publish';
+const POINTER_UPDATE_STATUS_CONTEXT = 'Pointer update';
 const BUMP_BRANCH_PATTERN = /^chore\/bump-(.+)-([0-9a-f]{7})$/;
 
 async function handleWorkflowRun(
@@ -385,6 +386,103 @@ export async function POST(request: Request): Promise<Response> {
       });
     }
   }
+  let pointerCommentId: number | null = null;
+  let pointerTemplates: Awaited<ReturnType<typeof loadPublishCommentTemplates>> = null;
+  let pointerSourcePullRequest: { number: number; headSha: string } | null = null;
+  if (decision.package) {
+    try {
+      const found = await findMergedPullRequestByCommit({
+        organizationId: decision.organizationId,
+        repositoryFullName: decision.package.repositoryFullName,
+        sha: parsed.data.after,
+      });
+      if (found) {
+        pointerSourcePullRequest = found;
+        pointerTemplates = await loadPublishCommentTemplates(decision.organizationId, npmRepository.npmRepositoryFullName);
+        if (pointerTemplates?.pointerUpdating) {
+          const comment = await createIssueComment({
+            organizationId: decision.organizationId,
+            repositoryFullName: decision.package.repositoryFullName,
+            issueNumber: found.number,
+            body: renderCommentTemplate(pointerTemplates.pointerUpdating, {
+              npmRepository: npmRepository.npmRepositoryFullName,
+              commit: parsed.data.after.slice(0, 7),
+            }),
+          });
+          pointerCommentId = comment.id;
+        }
+        try {
+          await createCommitStatus({
+            organizationId: decision.organizationId,
+            repositoryFullName: decision.package.repositoryFullName,
+            sha: found.headSha,
+            state: 'pending',
+            context: POINTER_UPDATE_STATUS_CONTEXT,
+            description: `Updating ${decision.package.repositoryFullName} to ${parsed.data.after.slice(0, 7)}`,
+          });
+        } catch (statusError) {
+          logWebhookFailure('pointer_update_status_failed', {
+            event,
+            deliveryId,
+            organizationId: decision.organizationId,
+            repositoryFullName: decision.package.repositoryFullName,
+            message: statusError instanceof Error ? statusError.message : String(statusError),
+          });
+        }
+      }
+    } catch (error) {
+      logWebhookFailure('pointer_update_start_comment_failed', {
+        event,
+        deliveryId,
+        organizationId: decision.organizationId,
+        repositoryFullName: decision.package.repositoryFullName,
+        message: error instanceof Error ? error.message : String(error),
+      });
+    }
+  }
+  const finishPointerUpdateStage = async (outcome: 'completed' | 'failed', bumpPullRequestUrl: string | null): Promise<void> => {
+    const sourcePullRequest = pointerSourcePullRequest;
+    const organizationId = decision.organizationId;
+    if (!sourcePullRequest || !decision.package || !organizationId) return;
+    const repositoryFullName = decision.package.repositoryFullName;
+    try {
+      if (pointerCommentId && pointerTemplates) {
+        const template = outcome === 'completed' ? pointerTemplates.pointerUpdated : pointerTemplates.pointerUpdateFailed;
+        if (template) {
+          await updateIssueComment({
+            organizationId,
+            repositoryFullName,
+            commentId: pointerCommentId,
+            body: renderCommentTemplate(template, {
+              pullRequestUrl: bumpPullRequestUrl ?? '',
+              npmRepository: npmRepository.npmRepositoryFullName ?? '',
+              commit: parsed.data.after.slice(0, 7),
+            }),
+          });
+        }
+      }
+      await createCommitStatus({
+        organizationId,
+        repositoryFullName,
+        sha: sourcePullRequest.headSha,
+        state: outcome === 'completed' ? 'success' : 'failure',
+        context: POINTER_UPDATE_STATUS_CONTEXT,
+        description:
+          outcome === 'completed'
+            ? `Updated ${repositoryFullName} to ${parsed.data.after.slice(0, 7)}`
+            : `Failed to update ${repositoryFullName}`,
+        targetUrl: bumpPullRequestUrl ?? undefined,
+      });
+    } catch (error) {
+      logWebhookFailure('pointer_update_stage_finish_failed', {
+        event,
+        deliveryId,
+        organizationId: decision.organizationId,
+        repositoryFullName,
+        message: error instanceof Error ? error.message : String(error),
+      });
+    }
+  };
   let result: PointerUpdateResult;
   try {
     result = await runPointerUpdate({ ...decision, accepted: true }, npmRepository, parsed.data.after);
@@ -411,6 +509,7 @@ export async function POST(request: Request): Promise<Response> {
         });
       });
     }
+    await finishPointerUpdateStage('failed', null);
     throw error;
   }
   if (updateEventId) {
@@ -434,6 +533,11 @@ export async function POST(request: Request): Promise<Response> {
       repositoryFullName: parsed.data.repository.full_name,
       afterSha: parsed.data.after,
     });
+  }
+  if (result.automated || result.reason === 'already_synced') {
+    await finishPointerUpdateStage('completed', result.pullRequestUrl ?? null);
+  } else {
+    await finishPointerUpdateStage('failed', null);
   }
   if (result.automated && result.pullRequestUrl && decision.package) {
     const linked = decision.package;

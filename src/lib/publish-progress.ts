@@ -90,6 +90,9 @@ export interface PublishCommentTemplates {
   pointerUpdate: string;
   published: string;
   publishFailed: string;
+  pointerUpdating: string | null;
+  pointerUpdated: string | null;
+  pointerUpdateFailed: string | null;
 }
 
 const PUBLISH_COMMENT_TEMPLATES_PATH = '.github/publish-progress-comments.json';
@@ -111,7 +114,14 @@ export async function loadPublishCommentTemplates(
   if (!response.ok) return null;
   const data = (await response.json().catch(() => null)) as { content?: string } | null;
   if (!data?.content) return null;
-  let parsed: { pointerUpdate?: unknown; published?: unknown; publishFailed?: unknown };
+  let parsed: {
+    pointerUpdate?: unknown;
+    published?: unknown;
+    publishFailed?: unknown;
+    pointerUpdating?: unknown;
+    pointerUpdated?: unknown;
+    pointerUpdateFailed?: unknown;
+  };
   try {
     parsed = JSON.parse(Buffer.from(data.content, 'base64').toString('utf8')) as typeof parsed;
   } catch {
@@ -127,7 +137,15 @@ export async function loadPublishCommentTemplates(
   ) {
     return null;
   }
-  return { pointerUpdate: parsed.pointerUpdate, published: parsed.published, publishFailed: parsed.publishFailed };
+  const optionalText = (value: unknown): string | null => (typeof value === 'string' && value.length > 0 ? value : null);
+  return {
+    pointerUpdate: parsed.pointerUpdate,
+    published: parsed.published,
+    publishFailed: parsed.publishFailed,
+    pointerUpdating: optionalText(parsed.pointerUpdating),
+    pointerUpdated: optionalText(parsed.pointerUpdated),
+    pointerUpdateFailed: optionalText(parsed.pointerUpdateFailed),
+  };
 }
 
 export function renderCommentTemplate(template: string, values: Record<string, string>): string {
