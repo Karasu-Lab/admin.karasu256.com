@@ -11,12 +11,14 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
+  Checkbox,
   Dialog,
   DialogBackdrop,
   DialogPopup,
   DialogPortal,
   DialogTitle,
   Input,
+  Label,
   Spinner,
   Switch,
   toast,
@@ -177,10 +179,10 @@ export function SigningKeysSection({ authApiUrl, settingsUrl, keys, disabled, on
             <pre className="max-h-64 overflow-auto rounded-md bg-muted p-3 text-xs whitespace-pre-wrap break-all">
               {privateKey}
             </pre>
-            <label className="flex items-center gap-2 text-sm">
-              <input type="checkbox" checked={saved} onChange={(event) => setSaved(event.target.checked)} />
-              {t('privateKeySaved')}
-            </label>
+            <div className="flex items-center gap-2">
+              <Checkbox id="private-key-saved" checked={saved} onCheckedChange={(checked) => setSaved(checked === true)} />
+              <Label htmlFor="private-key-saved">{t('privateKeySaved')}</Label>
+            </div>
             <div className="flex justify-end">
               <Button
                 disabled={!saved}
