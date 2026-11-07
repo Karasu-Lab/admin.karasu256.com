@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { Button, Card, CardContent, CardDescription, CardHeader, CardTitle, Input, Label, toast } from '@karasu-lab/ui';
+import { Button, Card, CardContent, CardDescription, CardHeader, CardTitle, Input, Label, Spinner, toast } from '@karasu-lab/ui';
 import { startNpmSetupAction } from '@/app/actions';
 
 export function NpmSetupForm({
@@ -63,6 +63,7 @@ export function NpmSetupForm({
           />
         </div>
         <Button onClick={start} disabled={busy || !npmName || !templateName}>
+          {busy && <Spinner />}
           {busy ? t('starting') : t('start')}
         </Button>
       </CardContent>

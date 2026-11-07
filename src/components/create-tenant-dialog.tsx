@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { Button, Dialog, DialogBackdrop, DialogPopup, DialogPortal, DialogTitle, Input, Label, toast } from '@karasu-lab/ui';
+import { Button, Dialog, DialogBackdrop, DialogPopup, DialogPortal, DialogTitle, Input, Label, Spinner, toast } from '@karasu-lab/ui';
 
 interface CreateTenantDialogProps {
   open: boolean;
@@ -85,6 +85,7 @@ export function CreateTenantDialog({ open, onOpenChange, authApiUrl }: CreateTen
               {t('cancel')}
             </Button>
             <Button onClick={submit} disabled={submitting || !name || !slug}>
+              {submitting && <Spinner />}
               {submitting ? t('creating') : t('create')}
             </Button>
           </div>
