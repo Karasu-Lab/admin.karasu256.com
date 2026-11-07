@@ -56,8 +56,32 @@ async function gitApiJson<T>(path: string, body: unknown): Promise<T> {
   return (await response.json()) as T;
 }
 
+export type MirrorUploadUrlResult =
+  | { exists: true; key: string }
+  | { exists: false; key: string; uploadUrl: string; expiresAt: string };
+
 export async function getRepositoryAccess(repositoryId: number): Promise<RepositoryAccess> {
   return gitApiJson<RepositoryAccess>('/api/internal/repositories/access', { repositoryId });
+}
+
+export async function requestMirrorUploadUrl(input: {
+  repositoryId: number;
+  repositoryFullName: string;
+}): Promise<MirrorUploadUrlResult> {
+  const response = await gitApiFetch('/api/internal/mirrors/upload-url', input);
+  if (response.status === 403) {
+    const data = (await response.json().catch(() => null)) as RepositoryAccess | null;
+    if (data && !data.allowed) {
+      throw new Error(
+        `git API blocked the mirror upload for repository ${input.repositoryFullName}: visibility=${data.visibility ?? 'unknown'}, reason=${data.reason ?? 'not_allowed'}`
+      );
+    }
+  }
+  if (!response.ok) {
+    const detail = await response.text().catch(() => '');
+    throw new Error(`git API request failed (${response.status}): ${detail.slice(0, 300)}`);
+  }
+  return (await response.json()) as MirrorUploadUrlResult;
 }
 
 export async function requestSignedCommit(input: SignedCommitRequest): Promise<SignedCommitResult> {

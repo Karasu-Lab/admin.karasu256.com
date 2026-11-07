@@ -1,6 +1,7 @@
 import 'server-only';
 import { createBotPullRequest, updateLinkedPackagePointer, type PushWebhookDecision } from './api-auth';
 import { requestSignedCommit } from './git-api';
+import { seedMirrorIfNeeded } from './mirror-seed';
 import type { TenantNpmRepository } from './npm-repository';
 
 export interface PointerUpdateResult {
@@ -27,6 +28,10 @@ export async function runPointerUpdate(
 
   let outcome: string;
   try {
+    await seedMirrorIfNeeded({
+      repositoryId: npmRepository.npmRepositoryId,
+      repositoryFullName: npmRepositoryFullName,
+    });
     const result = await requestSignedCommit({
       organizationId,
       signingUserId,
