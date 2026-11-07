@@ -24,6 +24,7 @@ import {
 import type { InstallationRepository, TenantLinkedPackage, TenantOverview, TenantSummary } from '@/lib/tenants';
 import { registerRepository, repositoryRemote, unregisterRepository } from '@/lib/repositories';
 import { getTenantSetupCompleted, markTenantSetupCompleted } from '@/lib/setup-completion';
+import { generateWebhookSecret, getTenantWebhookSecret, setTenantWebhookSecret } from '@/lib/webhook-secret';
 import { getLiveFeed, type LiveFeedData } from '@/lib/update-events';
 
 export type { LiveFeedData, PackageUpdateEvent } from '@/lib/update-events';
@@ -533,9 +534,21 @@ export async function reregisterWebhookAction(organizationId: string): Promise<v
   if (overview.organization.role !== 'owner' && overview.organization.role !== 'admin') {
     throw new Error('tenant_setup_role_required');
   }
-  const secret = process.env.GH_APP_WEBHOOK_SECRET;
-  if (!secret) throw new Error('webhook_not_configured');
+  const secret = await getTenantWebhookSecret(organizationId);
+  if (!secret) throw new Error('webhook_secret_not_set');
   await reregisterAppWebhook({ url: `${getClientConfig().appUrl}/api/github/webhook`, secret });
+}
+
+export async function rotateWebhookSecretAction(organizationId: string): Promise<string> {
+  const userId = await requireUserId();
+  const overview = await getTenantOverview(organizationId, userId);
+  if (overview.organization.role !== 'owner' && overview.organization.role !== 'admin') {
+    throw new Error('tenant_setup_role_required');
+  }
+  const secret = generateWebhookSecret();
+  await reregisterAppWebhook({ url: `${getClientConfig().appUrl}/api/github/webhook`, secret });
+  await setTenantWebhookSecret(organizationId, secret);
+  return secret;
 }
 
 async function readRepositorySubmodules(
@@ -694,20 +707,28 @@ export interface PackagesData {
   signedIn: boolean;
   selected: TenantSummary | null;
   overview: TenantOverview | null;
+  webhookSecret: string | null;
 }
 
 export async function getPackagesDataAction(tenantId?: string): Promise<PackagesData> {
   const user = await getSessionUser(getClientConfig().authApiUrl);
   if (!user) {
-    return { signedIn: false, selected: null, overview: null };
+    return { signedIn: false, selected: null, overview: null, webhookSecret: null };
   }
   const tenants = await listUserTenants(user.uid);
   const selected = tenants.find((tenant) => tenant.id === tenantId) ?? tenants[0] ?? null;
   if (!selected) {
-    return { signedIn: true, selected: null, overview: null };
+    return { signedIn: true, selected: null, overview: null, webhookSecret: null };
   }
   const { overview } = await getTenantSettingsDataAction(selected.id);
-  return { signedIn: true, selected, overview };
+  let webhookSecret: string | null = null;
+  if (overview.organization.role === 'owner' || overview.organization.role === 'admin') {
+    webhookSecret = await getTenantWebhookSecret(selected.id).catch((caught) => {
+      console.error(caught instanceof Error ? new Error(`failed to load the tenant webhook secret: ${caught.message}`) : caught);
+      return null;
+    });
+  }
+  return { signedIn: true, selected, overview, webhookSecret };
 }
 
 export interface TenantProfileData {
