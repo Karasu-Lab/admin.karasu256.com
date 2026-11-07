@@ -82,6 +82,10 @@ export async function setTenantPackageEnabled(
   await apiAuthJson(`/api/internal/tenants/${organizationId}/packages/${packageId}/enabled`, { method: 'POST', body });
 }
 
+export async function uninstallTenantBot(organizationId: string, body: { userId: string }): Promise<void> {
+  await apiAuthJson(`/api/internal/tenants/${organizationId}/github-installation`, { method: 'DELETE', body });
+}
+
 export async function getInstallationToken(organizationId: string): Promise<{ token: string; expiresAt: string }> {
   return apiAuthJson(`/api/internal/tenants/${organizationId}/github-installation-token`, { method: 'POST', body: {} });
 }

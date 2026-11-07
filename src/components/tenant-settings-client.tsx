@@ -3,8 +3,22 @@
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
-import { Badge, Button, Card, CardContent, CardHeader, CardTitle, toast } from '@karasu-lab/ui';
-import { getTenantSettingsDataAction, type TenantSettingsData } from '@/app/actions';
+import {
+  Badge,
+  Button,
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  Dialog,
+  DialogBackdrop,
+  DialogPopup,
+  DialogPortal,
+  DialogTitle,
+  Spinner,
+  toast,
+} from '@karasu-lab/ui';
+import { getTenantSettingsDataAction, uninstallBotAction, type TenantSettingsData } from '@/app/actions';
 import { DeleteTenantSection } from './delete-tenant-section';
 import { LinkedPackagesSection } from './linked-packages-section';
 import { SigningKeysSection } from './signing-keys-section';
@@ -22,6 +36,8 @@ export function TenantSettingsClient({
 }) {
   const t = useTranslations('TenantSettings');
   const [data, setData] = useState<TenantSettingsData | null>(null);
+  const [uninstallConfirmOpen, setUninstallConfirmOpen] = useState(false);
+  const [uninstalling, setUninstalling] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -30,6 +46,19 @@ export function TenantSettingsClient({
       toast.error(caught instanceof Error ? caught.message : String(caught));
     }
   }, [tenantId]);
+
+  const uninstall = async () => {
+    setUninstalling(true);
+    try {
+      await uninstallBotAction(tenantId);
+      setUninstallConfirmOpen(false);
+      await load();
+    } catch {
+      toast.error(t('uninstallError'));
+    } finally {
+      setUninstalling(false);
+    }
+  };
 
   useEffect(() => {
     setData(null);
@@ -54,12 +83,37 @@ export function TenantSettingsClient({
             </CardHeader>
             <CardContent className="space-y-3">
               {overview?.installation ? (
-                <div className="flex flex-wrap items-center gap-2">
-                  <span>
-                    {t('installedOn')}: {overview.installation.targetLogin} ({overview.installation.targetType})
-                  </span>
-                  {overview.installation.suspended && <Badge variant="secondary">{t('suspended')}</Badge>}
-                </div>
+                <>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span>
+                      {t('installedOn')}: {overview.installation.targetLogin} ({overview.installation.targetType})
+                    </span>
+                    {overview.installation.suspended && <Badge variant="secondary">{t('suspended')}</Badge>}
+                  </div>
+                  <Button variant="destructive" disabled={loading} onClick={() => setUninstallConfirmOpen(true)}>
+                    {t('uninstall')}
+                  </Button>
+                  <Dialog open={uninstallConfirmOpen} onOpenChange={setUninstallConfirmOpen}>
+                    <DialogPortal>
+                      <DialogBackdrop />
+                      <DialogPopup className="space-y-4">
+                        <DialogTitle>{t('uninstallConfirmTitle')}</DialogTitle>
+                        <p className="text-sm text-muted-foreground">
+                          {t('uninstallConfirmDescription', { login: overview.installation.targetLogin })}
+                        </p>
+                        <div className="flex justify-end gap-2">
+                          <Button variant="outline" onClick={() => setUninstallConfirmOpen(false)} disabled={uninstalling}>
+                            {t('cancel')}
+                          </Button>
+                          <Button variant="destructive" onClick={uninstall} disabled={uninstalling}>
+                            {uninstalling && <Spinner />}
+                            {uninstalling ? t('uninstalling') : t('uninstall')}
+                          </Button>
+                        </div>
+                      </DialogPopup>
+                    </DialogPortal>
+                  </Dialog>
+                </>
               ) : (
                 <>
                   {!loading && <p className="text-sm text-muted-foreground">{t('notInstalled')}</p>}
