@@ -126,3 +126,17 @@ export async function evaluatePushWebhook(body: {
 }): Promise<PushWebhookDecision> {
   return apiAuthJson<PushWebhookDecision>('/api/internal/webhooks/push', { method: 'POST', body });
 }
+
+export interface InstallationWebhookResult {
+  accepted: boolean;
+  reason?: string;
+  organizationId?: string;
+  action?: string;
+}
+
+export async function applyInstallationWebhook(body: {
+  installationId: number;
+  action: string;
+}): Promise<InstallationWebhookResult> {
+  return apiAuthJson<InstallationWebhookResult>('/api/internal/webhooks/installation', { method: 'POST', body });
+}

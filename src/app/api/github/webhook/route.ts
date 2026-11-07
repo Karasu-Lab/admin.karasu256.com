@@ -1,6 +1,6 @@
 import { createHmac, timingSafeEqual } from 'node:crypto';
-import { githubPushWebhookPayloadSchema } from '@karasu-lab/types/shared';
-import { evaluatePushWebhook } from '@/lib/api-auth';
+import { githubInstallationWebhookPayloadSchema, githubPushWebhookPayloadSchema } from '@karasu-lab/types/shared';
+import { applyInstallationWebhook, evaluatePushWebhook } from '@/lib/api-auth';
 import { getTenantNpmRepository } from '@/lib/npm-repository';
 import { runPointerUpdate } from '@/lib/webhook-automation';
 
@@ -29,12 +29,23 @@ export async function POST(request: Request): Promise<Response> {
     return Response.json({ error: 'invalid_signature' }, { status: 401 });
   }
   const event = request.headers.get('x-github-event');
-  if (event !== 'push') return Response.json({ accepted: false, reason: 'event_ignored' }, { status: 202 });
+  if (event !== 'push' && event !== 'installation') {
+    return Response.json({ accepted: false, reason: 'event_ignored' }, { status: 202 });
+  }
   let payloadJson: unknown;
   try {
     payloadJson = JSON.parse(body);
   } catch {
     return Response.json({ error: 'invalid_payload' }, { status: 400 });
+  }
+  if (event === 'installation') {
+    const parsedInstallation = githubInstallationWebhookPayloadSchema.safeParse(payloadJson);
+    if (!parsedInstallation.success) return Response.json({ error: 'invalid_payload' }, { status: 400 });
+    const result = await applyInstallationWebhook({
+      installationId: parsedInstallation.data.installation.id,
+      action: parsedInstallation.data.action,
+    });
+    return Response.json(result, { status: 202 });
   }
   const parsed = githubPushWebhookPayloadSchema.safeParse(payloadJson);
   if (!parsed.success) return Response.json({ error: 'invalid_payload' }, { status: 400 });
