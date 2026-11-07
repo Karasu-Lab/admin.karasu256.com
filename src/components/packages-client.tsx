@@ -69,12 +69,12 @@ export function PackagesClient({ tenantId }: { tenantId?: string }) {
     try {
       await rotateWebhookSecretAction(selected.id);
       toast.success(t('webhookSecretRotated'));
-      setRotateDialogOpen(false);
-      await load();
     } catch (caught) {
       toast.error(caught instanceof Error ? caught.message : String(caught));
     } finally {
       setRotating(false);
+      setRotateDialogOpen(false);
+      await load();
     }
   };
 
@@ -113,7 +113,7 @@ export function PackagesClient({ tenantId }: { tenantId?: string }) {
               </div>
             )}
             <div className="flex gap-2">
-              <Button onClick={() => void handleReregisterWebhook()} disabled={loading || !canManage || !webhookSecret || reregistering || rotating}>
+              <Button onClick={() => void handleReregisterWebhook()} disabled={loading || !canManage || reregistering || rotating}>
                 {reregistering && <Spinner />}
                 {reregistering ? t('webhookReregistering') : t('webhookReregister')}
               </Button>

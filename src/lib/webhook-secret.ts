@@ -10,6 +10,10 @@ function encryptionKey(): string {
   return secret;
 }
 
+export function getMasterWebhookSecret(): string | null {
+  return process.env.GH_APP_WEBHOOK_SECRET || null;
+}
+
 export function generateWebhookSecret(): string {
   return randomBytes(32).toString('base64');
 }
@@ -28,6 +32,7 @@ export async function listTenantWebhookSecrets(): Promise<{ organizationId: stri
   const rows = await queryAdminDb<{ organization_id: string; encrypted_secret: string }>(
     'SELECT organization_id, encrypted_secret FROM tenant_webhook_secret'
   );
+  if (rows.length === 0) return [];
   const key = encryptionKey();
   const secrets: { organizationId: string; secret: string }[] = [];
   for (const row of rows) {

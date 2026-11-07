@@ -3,7 +3,7 @@ import { githubInstallationWebhookPayloadSchema, githubPushWebhookPayloadSchema 
 import { applyInstallationWebhook, evaluatePushWebhook } from '@/lib/api-auth';
 import { getTenantNpmRepository } from '@/lib/npm-repository';
 import { finishPackageUpdate, startPackageUpdate } from '@/lib/update-events';
-import { listTenantWebhookSecrets } from '@/lib/webhook-secret';
+import { getMasterWebhookSecret, listTenantWebhookSecrets } from '@/lib/webhook-secret';
 import { runPointerUpdate, type PointerUpdateResult } from '@/lib/webhook-automation';
 
 export const runtime = 'nodejs';
@@ -25,12 +25,21 @@ function signatureValid(secret: string, body: string, header: string | null): bo
 
 export async function POST(request: Request): Promise<Response> {
   const body = await request.text();
-  const secrets = await listTenantWebhookSecrets();
-  if (secrets.length === 0) return Response.json({ error: 'webhook_not_configured' }, { status: 503 });
+  const masterSecret = getMasterWebhookSecret();
+  const tenantSecrets = await listTenantWebhookSecrets().catch((caught) => {
+    console.error(caught instanceof Error ? new Error(`failed to load the tenant webhook secrets: ${caught.message}`) : caught);
+    return [];
+  });
+  if (!masterSecret && tenantSecrets.length === 0) {
+    return Response.json({ error: 'webhook_not_configured' }, { status: 503 });
+  }
   const signature = request.headers.get('x-hub-signature-256');
-  if (!secrets.some(({ secret }) => signatureValid(secret, body, signature))) {
+  const matchedByMaster = masterSecret !== null && signatureValid(masterSecret, body, signature);
+  const matchedTenant = tenantSecrets.find(({ secret }) => signatureValid(secret, body, signature)) ?? null;
+  if (!matchedByMaster && !matchedTenant) {
     return Response.json({ error: 'invalid_signature' }, { status: 401 });
   }
+  const routedOrganizationId = matchedTenant?.organizationId ?? null;
   const event = request.headers.get('x-github-event');
   if (event !== 'push' && event !== 'installation') {
     return Response.json({ accepted: false, reason: 'event_ignored' }, { status: 202 });
@@ -48,6 +57,9 @@ export async function POST(request: Request): Promise<Response> {
       installationId: parsedInstallation.data.installation.id,
       action: parsedInstallation.data.action,
     });
+    if (routedOrganizationId && result.organizationId && result.organizationId !== routedOrganizationId) {
+      return Response.json({ error: 'invalid_signature' }, { status: 401 });
+    }
     return Response.json(result, { status: 202 });
   }
   const parsed = githubPushWebhookPayloadSchema.safeParse(payloadJson);
@@ -61,6 +73,9 @@ export async function POST(request: Request): Promise<Response> {
     repositoryFullName: parsed.data.repository.full_name,
     afterSha: parsed.data.after,
   });
+  if (routedOrganizationId && decision.organizationId && decision.organizationId !== routedOrganizationId) {
+    return Response.json({ error: 'invalid_signature' }, { status: 401 });
+  }
   if (!decision.accepted || !decision.organizationId) {
     return Response.json({ accepted: false, reason: decision.reason ?? 'not_accepted' }, { status: 202 });
   }
