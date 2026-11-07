@@ -50,22 +50,23 @@ export function RepositoryImport({
   organizationId?: string;
   repositories: InstallationRepository[];
   linkedFullNames: string[];
-  onRefresh?: () => void;
+  onRefresh?: () => Promise<void> | void;
   disabled?: boolean;
   excludedFullNames?: string[];
 }) {
   const t = useTranslations('RepositoryImport');
   const router = useRouter();
   const [busyId, setBusyId] = useState<number | null>(null);
+  const [justLinkedFullNames, setJustLinkedFullNames] = useState<string[]>([]);
   const [page, setPage] = useState(1);
   const candidates = repositories.filter((repository) => !excludedFullNames?.includes(repository.fullName));
   const pageCount = Math.max(1, Math.ceil(candidates.length / PAGE_SIZE));
   const currentPage = Math.min(page, pageCount);
   const visibleRepositories = candidates.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
 
-  const refresh = () => {
+  const refresh = async () => {
     if (onRefresh) {
-      onRefresh();
+      await onRefresh();
     } else {
       router.refresh();
     }
@@ -75,14 +76,15 @@ export function RepositoryImport({
     if (!organizationId) return;
     setBusyId(repository.id);
     try {
-      await linkPackageAction({
+      const result = await linkPackageAction({
         organizationId,
         repositoryId: repository.id,
         repositoryFullName: repository.fullName,
         defaultBranch: repository.defaultBranch,
         private: repository.private,
       });
-      refresh();
+      setJustLinkedFullNames(result.linkedPackages.map((linked) => linked.repositoryFullName));
+      await refresh();
     } catch (caught) {
       toast.error(caught instanceof Error ? caught.message : t('linkError'));
     } finally {
@@ -99,7 +101,7 @@ export function RepositoryImport({
       <CardContent className="space-y-3">
         {!disabled && candidates.length === 0 && <p className="text-sm text-muted-foreground">{t('empty')}</p>}
         {visibleRepositories.map((repository) => {
-          const linked = linkedFullNames.includes(repository.fullName);
+          const linked = linkedFullNames.includes(repository.fullName) || justLinkedFullNames.includes(repository.fullName);
           return (
             <div key={repository.id} className="flex items-center gap-2 rounded-md border p-3">
               <span className="font-medium">{repository.fullName}</span>

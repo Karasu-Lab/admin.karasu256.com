@@ -21,7 +21,7 @@ import {
   saveTenantNpmRepository,
   type TenantNpmRepository,
 } from '@/lib/npm-repository';
-import type { InstallationRepository, TenantOverview, TenantSummary } from '@/lib/tenants';
+import type { InstallationRepository, TenantLinkedPackage, TenantOverview, TenantSummary } from '@/lib/tenants';
 import { registerRepository, repositoryRemote, unregisterRepository } from '@/lib/repositories';
 import { NPM_REPOSITORY_FILES, packageCiWorkflow, workflowTemplateFiles, type SetupFile } from '@/lib/setup-files';
 
@@ -259,7 +259,7 @@ export async function linkPackageAction(input: {
   repositoryFullName: string;
   defaultBranch: string;
   private: boolean;
-}): Promise<{ versionNaming: string }> {
+}): Promise<{ versionNaming: string; linkedPackages: TenantLinkedPackage[] }> {
   const userId = await requireUserId();
   const overview = await getTenantOverview(input.organizationId, userId);
   if (!overview.installation) throw new Error('github_app_not_installed');
@@ -385,7 +385,14 @@ export async function linkPackageAction(input: {
     submodulePath,
     versionNaming: pattern,
   });
-  return { versionNaming: pattern };
+  const overviewAfterLink = await getTenantOverview(input.organizationId, userId);
+  const refreshed = await reconcileLinkedPackages({
+    organizationId: input.organizationId,
+    userId,
+    overview: overviewAfterLink,
+    npmRepository,
+  });
+  return { versionNaming: pattern, linkedPackages: refreshed.linkedPackages };
 }
 
 export async function setPackageEnabledAction(input: {
