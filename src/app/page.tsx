@@ -7,7 +7,7 @@ import { RepositoryImport } from '@/components/repository-import';
 import { getTenantOverview, listTenantRepositories, listUserTenants } from '@/lib/api-auth';
 import { getClientConfig } from '@/lib/client-config';
 import { getTenantNpmRepository, type TenantNpmRepository } from '@/lib/npm-repository';
-import type { InstallationRepository, TenantOverview, TenantSummary } from '@/lib/tenants';
+import type { InstallationRepository, TenantOverview } from '@/lib/tenants';
 
 interface Step {
   done: boolean;
@@ -38,39 +38,19 @@ export default async function Home({
     );
   }
 
-  let tenants: TenantSummary[] = [];
-  let tenantsError: string | null = null;
-  try {
-    tenants = await listUserTenants(user.uid);
-  } catch (error) {
-    tenantsError = error instanceof Error ? error.message : String(error);
-  }
+  const tenants = await listUserTenants(user.uid);
 
   const params = (await searchParams) ?? {};
   const selected = tenants.find((tenant) => tenant.id === params.tenant) ?? tenants[0] ?? null;
 
   let overview: TenantOverview | null = null;
-  let overviewError: string | null = null;
   let npmRepository: TenantNpmRepository | null = null;
   let repositories: InstallationRepository[] = [];
-  let repositoriesError: string | null = null;
   if (selected) {
-    try {
-      overview = await getTenantOverview(selected.id, user.uid);
-    } catch (error) {
-      overviewError = error instanceof Error ? error.message : String(error);
-    }
-    try {
-      npmRepository = await getTenantNpmRepository(selected.id);
-    } catch (error) {
-      overviewError = error instanceof Error ? error.message : String(error);
-    }
-    if (overview?.installation) {
-      try {
-        repositories = await listTenantRepositories(selected.id);
-      } catch (error) {
-        repositoriesError = error instanceof Error ? error.message : String(error);
-      }
+    overview = await getTenantOverview(selected.id, user.uid);
+    npmRepository = await getTenantNpmRepository(selected.id);
+    if (overview.installation) {
+      repositories = await listTenantRepositories(selected.id);
     }
   }
 
@@ -128,16 +108,7 @@ export default async function Home({
       <NavSidebar />
       <main className="flex-1 space-y-6 p-6">
         <h1 className="text-2xl font-bold">{t('title')}</h1>
-        {tenantsError && (
-          <Card>
-            <CardContent className="pt-6">
-              <p className="text-sm text-destructive">
-                {t('loadError')}: {tenantsError}
-              </p>
-            </CardContent>
-          </Card>
-        )}
-        {!tenantsError && tenants.length === 0 && <p className="text-muted-foreground">{t('noTenants')}</p>}
+        {tenants.length === 0 && <p className="text-muted-foreground">{t('noTenants')}</p>}
         {tenants.length > 1 && (
           <div className="flex flex-wrap gap-2">
             {tenants.map((tenant) => (
@@ -159,11 +130,6 @@ export default async function Home({
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              {overviewError && (
-                <p className="text-sm text-destructive">
-                  {t('loadError')}: {overviewError}
-                </p>
-              )}
               {steps.map((step) => (
                 <div key={step.title} className="flex flex-wrap items-center gap-3 rounded-md border p-3">
                   <Badge variant={step.done ? 'default' : 'secondary'}>
@@ -188,7 +154,6 @@ export default async function Home({
             organizationId={selected.id}
             repositories={repositories}
             linkedFullNames={overview.linkedPackages.map((linked) => linked.repositoryFullName)}
-            loadError={repositoriesError}
           />
         )}
       </main>

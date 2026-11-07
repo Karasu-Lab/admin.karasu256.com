@@ -18,24 +18,11 @@ export default async function TenantSettingsPage({ params }: { params: Promise<{
   const authApiUrl = clientConfig.authApiUrl;
   const settingsUrl = `${clientConfig.appUrl}/tenants/${id}/settings`;
 
-  let overview: TenantOverview | null = null;
-  let loadError: string | null = null;
-  let npmRepository: TenantNpmRepository | null = null;
-  let npmLoadError: string | null = null;
-  if (user) {
-    try {
-      overview = await getTenantOverview(id, user.uid);
-    } catch (error) {
-      loadError = error instanceof Error ? error.message : String(error);
-    }
-    try {
-      npmRepository = await getTenantNpmRepository(id);
-    } catch (error) {
-      npmLoadError = error instanceof Error ? error.message : String(error);
-    }
-  } else {
-    loadError = 'unauthorized';
+  if (!user) {
+    throw new Error('unauthorized');
   }
+  const overview: TenantOverview = await getTenantOverview(id, user.uid);
+  const npmRepository: TenantNpmRepository | null = await getTenantNpmRepository(id);
 
   const installUrl = `${authApiUrl}/api/github-app/install?organizationId=${encodeURIComponent(id)}&returnTo=${encodeURIComponent(settingsUrl)}`;
 
@@ -47,15 +34,6 @@ export default async function TenantSettingsPage({ params }: { params: Promise<{
           {t('title')}
           {overview ? ` — ${overview.organization.name}` : ''}
         </h1>
-        {loadError && (
-          <Card>
-            <CardContent className="pt-6">
-              <p className="text-sm text-destructive">
-                {t('loadError')}: {loadError}
-              </p>
-            </CardContent>
-          </Card>
-        )}
         {overview && (
           <>
             <Card>
@@ -83,11 +61,7 @@ export default async function TenantSettingsPage({ params }: { params: Promise<{
                 <CardTitle>{t('npm')}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-2">
-                {npmLoadError ? (
-                  <p className="text-sm text-destructive">
-                    {t('loadError')}: {npmLoadError}
-                  </p>
-                ) : npmRepository?.npmRepositoryFullName ? (
+                {npmRepository?.npmRepositoryFullName ? (
                   <>
                     <p className="text-sm">
                       {t('npmRepository')}: {npmRepository.npmRepositoryFullName}

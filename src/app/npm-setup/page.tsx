@@ -17,13 +17,8 @@ export default async function NpmSetupPage({
   const user = await getSessionUser(getClientConfig().authApiUrl);
 
   let tenants: TenantSummary[] = [];
-  let loadError: string | null = null;
   if (user) {
-    try {
-      tenants = await listUserTenants(user.uid);
-    } catch (error) {
-      loadError = error instanceof Error ? error.message : String(error);
-    }
+    tenants = await listUserTenants(user.uid);
   }
 
   const params = (await searchParams) ?? {};
@@ -32,16 +27,8 @@ export default async function NpmSetupPage({
   let overview: TenantOverview | null = null;
   let npmRepository: TenantNpmRepository | null = null;
   if (user && selected) {
-    try {
-      overview = await getTenantOverview(selected.id, user.uid);
-    } catch (error) {
-      loadError = error instanceof Error ? error.message : String(error);
-    }
-    try {
-      npmRepository = await getTenantNpmRepository(selected.id);
-    } catch (error) {
-      loadError = error instanceof Error ? error.message : String(error);
-    }
+    overview = await getTenantOverview(selected.id, user.uid);
+    npmRepository = await getTenantNpmRepository(selected.id);
   }
 
   const alreadyDone = Boolean(npmRepository?.npmRepositoryFullName && npmRepository?.workflowTemplateRepositoryFullName);
@@ -52,14 +39,7 @@ export default async function NpmSetupPage({
       <main className="flex-1 space-y-6 p-6">
         <h1 className="text-2xl font-bold">{t('title')}</h1>
         {!user && <p className="text-muted-foreground">{t('noTenant')}</p>}
-        {loadError && (
-          <Card>
-            <CardContent className="pt-6">
-              <p className="text-sm text-destructive">{loadError}</p>
-            </CardContent>
-          </Card>
-        )}
-        {user && !selected && !loadError && <p className="text-muted-foreground">{t('noTenant')}</p>}
+        {user && !selected && <p className="text-muted-foreground">{t('noTenant')}</p>}
         {selected && overview && !overview.installation && (
           <p className="text-muted-foreground">{t('noTenant')}</p>
         )}
@@ -73,7 +53,7 @@ export default async function NpmSetupPage({
             </CardContent>
           </Card>
         )}
-        {selected && overview?.installation && !loadError && !alreadyDone && (
+        {selected && overview?.installation && !alreadyDone && (
           <NpmSetupForm
             organizationId={selected.id}
             initialNpmRepositoryName={npmRepository?.npmRepositoryName}

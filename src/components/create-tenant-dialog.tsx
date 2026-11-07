@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { Button, Dialog, DialogBackdrop, DialogPopup, DialogPortal, DialogTitle, Input, Label } from '@karasu-lab/ui';
+import { Button, Dialog, DialogBackdrop, DialogPopup, DialogPortal, DialogTitle, Input, Label, toast } from '@karasu-lab/ui';
 
 interface CreateTenantDialogProps {
   open: boolean;
@@ -26,11 +26,9 @@ export function CreateTenantDialog({ open, onOpenChange, authApiUrl }: CreateTen
   const [slug, setSlug] = useState('');
   const [slugEdited, setSlugEdited] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   const submit = async () => {
     setSubmitting(true);
-    setError(null);
     try {
       const response = await fetch(
         `${authApiUrl}/api/auth/organization/create`,
@@ -48,7 +46,7 @@ export function CreateTenantDialog({ open, onOpenChange, authApiUrl }: CreateTen
       setSlugEdited(false);
       router.refresh();
     } catch {
-      setError(t('createError'));
+      toast.error(t('createError'));
     } finally {
       setSubmitting(false);
     }
@@ -82,7 +80,6 @@ export function CreateTenantDialog({ open, onOpenChange, authApiUrl }: CreateTen
               }}
             />
           </div>
-          {error && <p className="text-sm text-destructive">{error}</p>}
           <div className="flex justify-end gap-2">
             <Button variant="ghost" onClick={() => onOpenChange(false)}>
               {t('cancel')}

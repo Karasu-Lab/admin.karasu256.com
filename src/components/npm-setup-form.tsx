@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { Button, Card, CardContent, CardDescription, CardHeader, CardTitle, Input, Label } from '@karasu-lab/ui';
+import { Button, Card, CardContent, CardDescription, CardHeader, CardTitle, Input, Label, toast } from '@karasu-lab/ui';
 import { startNpmSetupAction } from '@/app/actions';
 
 export function NpmSetupForm({
@@ -20,11 +20,9 @@ export function NpmSetupForm({
   const [npmName, setNpmName] = useState(initialNpmRepositoryName ?? 'npm');
   const [templateName, setTemplateName] = useState(initialTemplateRepositoryName ?? 'workflow-templates');
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   const start = async () => {
     setBusy(true);
-    setError(null);
     try {
       await startNpmSetupAction({
         organizationId,
@@ -33,7 +31,7 @@ export function NpmSetupForm({
       });
       router.refresh();
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : t('error'));
+      toast.error(caught instanceof Error ? caught.message : t('error'));
     } finally {
       setBusy(false);
     }
@@ -58,7 +56,6 @@ export function NpmSetupForm({
             onChange={(event) => setTemplateName(event.target.value)}
           />
         </div>
-        {error && <p className="text-sm text-destructive">{error}</p>}
         <Button onClick={start} disabled={busy || !npmName || !templateName}>
           {busy ? t('starting') : t('start')}
         </Button>
