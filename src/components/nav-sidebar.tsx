@@ -16,7 +16,7 @@ export function NavSidebar() {
   ] as const;
 
   return (
-    <aside className="flex flex-col w-56 min-h-screen border-r bg-background px-3 py-4 gap-1">
+    <aside className="sticky top-12 z-10 flex w-full flex-row gap-1 border-b bg-background px-3 py-2 md:static md:min-h-screen md:w-56 md:flex-col md:border-r md:border-b-0 md:py-4">
       {items.map(({ href, label, icon: Icon }) => (
         <Link
           key={href}
