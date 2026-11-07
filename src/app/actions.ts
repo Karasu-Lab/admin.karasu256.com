@@ -431,7 +431,10 @@ async function readRepositorySubmodules(
 ): Promise<{ path: string; repositoryFullName: string }[]> {
   const response = await githubGet(token, `${repositoryFullName}/contents/.gitmodules`);
   if (!response.ok) {
-    console.error(new Error(`failed to read .gitmodules of ${repositoryFullName}: GitHub responded ${response.status}`));
+    const body = await response.text().catch(() => '');
+    console.error(
+      new Error(`failed to read .gitmodules of ${repositoryFullName}: GitHub responded ${response.status}${body ? `: ${body}` : ''}`)
+    );
     return [];
   }
   const data = (await response.json()) as { content?: string };
@@ -456,12 +459,18 @@ async function reconcileLinkedPackages(input: {
   const { organizationId, userId, overview, npmRepository } = input;
   if (!overview.installation || !npmRepository?.npmRepositoryFullName) return overview;
   try {
+    const repositories = await listTenantRepositories(organizationId);
+    if (!repositories.some((repository) => repository.fullName === npmRepository.npmRepositoryFullName)) {
+      console.error(
+        new Error(`linked package reconciliation cannot run: the installation cannot access the npm repository ${npmRepository.npmRepositoryFullName}`)
+      );
+      return overview;
+    }
     const { token } = await getInstallationToken(organizationId);
     const submodules = await readRepositorySubmodules(token, npmRepository.npmRepositoryFullName);
     const linkedNames = new Set(overview.linkedPackages.map((linked) => linked.repositoryFullName));
     const missing = submodules.filter((submodule) => !linkedNames.has(submodule.repositoryFullName));
     if (missing.length === 0) return overview;
-    const repositories = await listTenantRepositories(organizationId);
     const byFullName = new Map(repositories.map((repository) => [repository.fullName, repository]));
     let registered = false;
     for (const submodule of missing) {
