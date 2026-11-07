@@ -11,7 +11,7 @@
   },
   "dependencies": {
     "@karasu-lab/types": "0.1.0-3099873",
-    "@karasu-lab/ui": "0.1.0-1a86e48",
+    "@karasu-lab/ui": "0.1.0-4486e8b",
     "@karasu-lab/utils": "0.1.0-c59c9ae",
     "clsx": "^2.1.1",
     "framer-motion": "^12.38.0",

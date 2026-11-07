@@ -175,8 +175,8 @@ importers:
         specifier: 0.1.0-3099873
         version: 0.1.0-3099873
       '@karasu-lab/ui':
-        specifier: 0.1.0-1a86e48
-        version: 0.1.0-1a86e48(@better-auth/core@1.7.16(@better-auth/utils@0.5.1)(@better-fetch/fetch@1.3.3)(better-call@1.4.5(zod@4.6.7))(jose@6.2.15)(kysely@0.29.8)(nanostores@1.5.5))(@better-auth/utils@0.5.1)(@better-fetch/fetch@1.3.3)(@karasu-lab/api-permissions@0.1.0-70bd6e4)(@types/react@19.3.0)(better-call@1.4.5(zod@4.6.7))(nanostores@1.5.5)(next@16.2.6(@babel/core@7.29.7(supports-color@10.2.2))(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(supports-color@10.2.2)
+        specifier: 0.1.0-4486e8b
+        version: 0.1.0-4486e8b(@better-auth/core@1.7.16(@better-auth/utils@0.5.1)(@better-fetch/fetch@1.3.3)(better-call@1.4.5(zod@4.6.7))(jose@6.2.15)(kysely@0.29.8)(nanostores@1.5.5))(@better-auth/utils@0.5.1)(@better-fetch/fetch@1.3.3)(@karasu-lab/api-permissions@0.1.0-70bd6e4)(@types/react@19.3.0)(better-call@1.4.5(zod@4.6.7))(nanostores@1.5.5)(next@16.2.6(@babel/core@7.29.7(supports-color@10.2.2))(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(supports-color@10.2.2)
       '@karasu-lab/utils':
         specifier: 0.1.0-c59c9ae
         version: 0.1.0-c59c9ae(@better-auth/core@1.7.16(@better-auth/utils@0.5.1)(@better-fetch/fetch@1.3.3)(better-call@1.4.5(zod@4.6.7))(jose@6.2.15)(kysely@0.29.8)(nanostores@1.5.5))(@better-auth/utils@0.5.1)(@better-fetch/fetch@1.3.3)(@karasu-lab/api-permissions@0.1.0-70bd6e4)(better-call@1.4.5(zod@4.6.7))(nanostores@1.5.5)(next@16.2.6(@babel/core@7.29.7(supports-color@10.2.2))(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
@@ -1508,8 +1508,8 @@ packages:
   '@karasu-lab/types@0.1.0-3099873':
     resolution: {integrity: sha512-CEIMxmU/XogdhR2NghbfJGwJ2lcT2fRcFuqMbNdPxWHtuyAw0iIGqvsgrRZofz8MqibLS6jJm7Gia2w5wrL2pg==, tarball: https://npm.pkg.github.com/download/@karasu-lab/types/0.1.0-3099873/afc80220c6a33d3fbe18bb3bb3e676e3e32cf0a7}
 
-  '@karasu-lab/ui@0.1.0-1a86e48':
-    resolution: {integrity: sha512-ra8bw0ukrgUwqD68Gvrh0gXbt4GPAVnHJYHWz7pa7ZIHdHd6Sj/bc+mPHwt0sB9GZoRg86W6wbx5LIWZJy0cvg==, tarball: https://npm.pkg.github.com/download/@karasu-lab/ui/0.1.0-1a86e48/0a77f196cac554011e8a3d54fd577e9de8098a7a}
+  '@karasu-lab/ui@0.1.0-4486e8b':
+    resolution: {integrity: sha512-jFM9t+b1fX7zI5dIu/ZbPP8XU2FYUiLJStzuRUvP+A3PVNSWwGdNKVDAo/G2lpOYymkK4tYWjy1YL7o46ZrzJw==, tarball: https://npm.pkg.github.com/download/@karasu-lab/ui/0.1.0-4486e8b/4c3adcf468d5397c6a397b2eb5f7e38ddf04eff5}
     peerDependencies:
       next: ^15.3.9
       react: ^19.0.0
@@ -5815,7 +5815,7 @@ snapshots:
     dependencies:
       zod: 4.6.7
 
-  '@karasu-lab/ui@0.1.0-1a86e48(@better-auth/core@1.7.16(@better-auth/utils@0.5.1)(@better-fetch/fetch@1.3.3)(better-call@1.4.5(zod@4.6.7))(jose@6.2.15)(kysely@0.29.8)(nanostores@1.5.5))(@better-auth/utils@0.5.1)(@better-fetch/fetch@1.3.3)(@karasu-lab/api-permissions@0.1.0-70bd6e4)(@types/react@19.3.0)(better-call@1.4.5(zod@4.6.7))(nanostores@1.5.5)(next@16.2.6(@babel/core@7.29.7(supports-color@10.2.2))(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(supports-color@10.2.2)':
+  '@karasu-lab/ui@0.1.0-4486e8b(@better-auth/core@1.7.16(@better-auth/utils@0.5.1)(@better-fetch/fetch@1.3.3)(better-call@1.4.5(zod@4.6.7))(jose@6.2.15)(kysely@0.29.8)(nanostores@1.5.5))(@better-auth/utils@0.5.1)(@better-fetch/fetch@1.3.3)(@karasu-lab/api-permissions@0.1.0-70bd6e4)(@types/react@19.3.0)(better-call@1.4.5(zod@4.6.7))(nanostores@1.5.5)(next@16.2.6(@babel/core@7.29.7(supports-color@10.2.2))(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(supports-color@10.2.2)':
     dependencies:
       '@base-ui/react': 1.9.0(@types/react@19.3.0)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
       '@karasu-lab/utils': 0.1.0-c59c9ae(@better-auth/core@1.7.16(@better-auth/utils@0.5.1)(@better-fetch/fetch@1.3.3)(better-call@1.4.5(zod@4.6.7))(jose@6.2.15)(kysely@0.29.8)(nanostores@1.5.5))(@better-auth/utils@0.5.1)(@better-fetch/fetch@1.3.3)(@karasu-lab/api-permissions@0.1.0-70bd6e4)(better-call@1.4.5(zod@4.6.7))(nanostores@1.5.5)(next@16.2.6(@babel/core@7.29.7(supports-color@10.2.2))(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(react-dom@19.2.4(react@19.2.4))(react@19.2.4)

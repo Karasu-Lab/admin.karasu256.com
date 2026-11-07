@@ -42,9 +42,8 @@ export async function Header() {
         tenants={tenants}
         authApiUrl={clientConfig.authApiUrl}
         signInHref={signInUrl}
-        settingsHref={`${clientConfig.appUrl}/settings`}
         onSignOut={signOutAction}
-        labels={{ signIn: t('signIn'), settings: t('settings'), signOut: t('signOut') }}
+        labels={{ signIn: t('signIn'), signOut: t('signOut') }}
         triggerAriaLabel={t('accountMenuLabel')}
       />
     </UiHeader>
