@@ -361,17 +361,18 @@ export async function linkPackageAction(input: {
       { path: submodulePath, url: repositoryRemote(input.repositoryFullName), branch: input.defaultBranch },
     ],
   });
-  if (addResult.outcome !== 'pushed') {
+  if (addResult.outcome === 'pushed') {
+    await createBotPullRequest({
+      organizationId: input.organizationId,
+      repositoryFullName: npmFullName,
+      title: `Add ${repositoryName} as a package`,
+      head: addBranch,
+      base: 'main',
+      enableAutoMerge: true,
+    });
+  } else if (addResult.outcome !== 'no_changes' && addResult.outcome !== 'already_synced') {
     throw new Error(`npm_repository_update_${addResult.outcome}`);
   }
-  await createBotPullRequest({
-    organizationId: input.organizationId,
-    repositoryFullName: npmFullName,
-    title: `Add ${repositoryName} as a package`,
-    head: addBranch,
-    base: 'main',
-    enableAutoMerge: true,
-  });
 
   await linkTenantPackage(input.organizationId, {
     userId,
