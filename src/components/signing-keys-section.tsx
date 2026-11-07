@@ -27,6 +27,7 @@ interface SigningKeysSectionProps {
   authApiUrl: string;
   settingsUrl: string;
   keys: UserSigningKey[];
+  disabled?: boolean;
   onRefresh?: () => void;
 }
 
@@ -34,7 +35,7 @@ interface SessionResponse {
   session?: { id?: string } | null;
 }
 
-export function SigningKeysSection({ authApiUrl, settingsUrl, keys, onRefresh }: SigningKeysSectionProps) {
+export function SigningKeysSection({ authApiUrl, settingsUrl, keys, disabled, onRefresh }: SigningKeysSectionProps) {
   const t = useTranslations('SigningKeys');
   const router = useRouter();
   const refresh = () => {
@@ -133,14 +134,15 @@ export function SigningKeysSection({ authApiUrl, settingsUrl, keys, onRefresh }:
           <Input
             placeholder={t('name')}
             value={newName}
+            disabled={disabled}
             onChange={(event) => setNewName(event.target.value)}
             className="max-w-xs"
           />
-          <Button onClick={create} disabled={busy || !sessionId || !newName}>
+          <Button onClick={create} disabled={disabled || busy || !sessionId || !newName}>
             {busy && <Spinner />}
             {busy ? t('creating') : t('create')}
           </Button>
-          <Button variant="outline" render={<a href={authorizeUrl} />}>
+          <Button variant="outline" disabled={disabled} render={<a href={authorizeUrl} />}>
             {t('authorize')}
           </Button>
         </div>
@@ -149,7 +151,7 @@ export function SigningKeysSection({ authApiUrl, settingsUrl, keys, onRefresh }:
             <KeyRow
               key={key.id}
               signingKey={key}
-              busy={busy}
+              busy={busy || Boolean(disabled)}
               sessionReady={Boolean(sessionId)}
               onRotate={() => rotate(key.id)}
               onRename={(name) => rename(key.id, name)}
