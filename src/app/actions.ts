@@ -13,7 +13,7 @@ import {
   getGithubAppInstallUrl,
 } from '@/lib/api-auth';
 import { getClientConfig } from '@/lib/client-config';
-import { createBotPullRequest, createTenantRepository, getRepositoryAccess, listTenantRepositories, requestSignedCommit } from '@/lib/git-api';
+import { createBotPullRequest, createTenantRepository, getRepositoryAccess, listTenantRepositories, requestSignedCommit, reregisterAppWebhook } from '@/lib/git-api';
 import { seedMirrorIfNeeded } from '@/lib/mirror-seed';
 import {
   deleteTenantNpmRepository,
@@ -525,6 +525,17 @@ export async function markSetupCompletedAction(organizationId: string): Promise<
   const userId = await requireUserId();
   await getTenantOverview(organizationId, userId);
   await markTenantSetupCompleted(organizationId);
+}
+
+export async function reregisterWebhookAction(organizationId: string): Promise<void> {
+  const userId = await requireUserId();
+  const overview = await getTenantOverview(organizationId, userId);
+  if (overview.organization.role !== 'owner' && overview.organization.role !== 'admin') {
+    throw new Error('tenant_setup_role_required');
+  }
+  const secret = process.env.GH_APP_WEBHOOK_SECRET;
+  if (!secret) throw new Error('webhook_not_configured');
+  await reregisterAppWebhook({ url: `${getClientConfig().appUrl}/api/github/webhook`, secret });
 }
 
 async function readRepositorySubmodules(

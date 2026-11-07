@@ -44,6 +44,7 @@ export async function getGithubAppInstallUrl(): Promise<string> {
   return data.installUrl;
 }
 
+
 export async function getTenantOverview(organizationId: string, userId: string): Promise<TenantOverview> {
   return apiAuthJson<TenantOverview>(`/api/internal/tenants/${organizationId}/overview?userId=${encodeURIComponent(userId)}`);
 }
