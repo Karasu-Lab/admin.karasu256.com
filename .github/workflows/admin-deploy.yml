@@ -131,6 +131,7 @@ jobs:
       CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
       NODE_AUTH_TOKEN: ${{ secrets.NODE_AUTH_TOKEN || secrets.GITHUB_TOKEN }}
       API_URL: ${{ vars.API_URL }}
+      GITHUB_APP_WEBHOOK_SECRET: ${{ secrets.GH_APP_WEBHOOK_SECRET }}
     steps:
       - name: Deploy the worker
         uses: Karasu-Lab/WorkersDeploy@v1
@@ -151,6 +152,7 @@ jobs:
       CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
       NODE_AUTH_TOKEN: ${{ secrets.NODE_AUTH_TOKEN || secrets.GITHUB_TOKEN }}
       API_URL: ${{ vars.API_URL }}
+      GITHUB_APP_WEBHOOK_SECRET: ${{ secrets.GH_APP_WEBHOOK_SECRET }}
     steps:
       - name: Deploy the worker
         uses: Karasu-Lab/WorkersDeploy@v1
