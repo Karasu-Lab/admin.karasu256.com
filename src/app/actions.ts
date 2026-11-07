@@ -142,7 +142,7 @@ export async function startNpmSetupAction(input: {
     organizationId: input.organizationId,
     signingUserId,
     repository: npmRepository,
-    branch: 'chore/set-up-release-flow',
+    branch: uniqueBranchName('chore/set-up-release-flow'),
     message: 'chore: set up the release flow',
     pullRequestTitle: 'Set up the release flow',
     files: NPM_REPOSITORY_FILES,
@@ -151,7 +151,7 @@ export async function startNpmSetupAction(input: {
     organizationId: input.organizationId,
     signingUserId,
     repository: templateRepository,
-    branch: 'chore/set-up-shared-ci-workflow',
+    branch: uniqueBranchName('chore/set-up-shared-ci-workflow'),
     message: 'chore: set up the shared CI workflow',
     pullRequestTitle: 'Set up the shared CI workflow',
     files: workflowTemplateFiles(templateRepository.fullName),
@@ -162,6 +162,10 @@ export async function startNpmSetupAction(input: {
     npmRepositoryOutcome: npmSetup.outcome,
     templateRepositoryOutcome: templateSetup.outcome,
   };
+}
+
+function uniqueBranchName(base: string): string {
+  return `${base}-${crypto.randomUUID()}`;
 }
 
 async function seedRepositoryFiles(input: {
@@ -291,7 +295,7 @@ export async function linkPackageAction(input: {
   if (!pattern) pattern = DEFAULT_VERSION_NAMING_PATTERN;
 
   const repositoryName = input.repositoryFullName.split('/')[1] ?? input.repositoryFullName;
-  const setupBranch = 'chore/package-setup';
+  const setupBranch = uniqueBranchName('chore/package-setup');
   const fileChanges: { path: string; content: string }[] = [];
   if (needsDeclaration) {
     fileChanges.push({
@@ -333,7 +337,7 @@ export async function linkPackageAction(input: {
 
   const npmFullName = npmRepository.npmRepositoryFullName;
   const submodulePath = `packages/${repositoryName}`;
-  const addBranch = `feat/add-${repositoryName}-package`;
+  const addBranch = uniqueBranchName(`feat/add-${repositoryName}-package`);
   const packageHeadOid = await repositoryHeadOid(token.token, input.repositoryFullName, input.defaultBranch);
   await seedMirrorIfNeeded({ repositoryId: npmRepository.npmRepositoryId, repositoryFullName: npmFullName });
   const addResult = await requestSignedCommit({
