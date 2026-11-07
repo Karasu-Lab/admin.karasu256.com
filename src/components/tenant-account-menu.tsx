@@ -10,6 +10,7 @@ export function TenantAccountMenu({
   tenants,
   authApiUrl,
   signInHref,
+  settingsHref,
   onSignOut,
   labels,
   triggerAriaLabel,
@@ -17,8 +18,9 @@ export function TenantAccountMenu({
   tenants: TenantSummary[];
   authApiUrl: string;
   signInHref: string;
+  settingsHref?: string;
   onSignOut: () => void | Promise<void>;
-  labels: { signIn: string; signOut: string };
+  labels: { signIn: string; settings: string; signOut: string };
   triggerAriaLabel: string;
 }) {
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -26,6 +28,7 @@ export function TenantAccountMenu({
     <>
       <AccountMenu
         signInHref={signInHref}
+        settingsHref={settingsHref}
         onSignOut={onSignOut}
         labels={labels}
         triggerAriaLabel={triggerAriaLabel}
