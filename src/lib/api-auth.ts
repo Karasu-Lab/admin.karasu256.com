@@ -39,6 +39,11 @@ export async function listUserTenants(userId: string): Promise<TenantSummary[]> 
   return data.tenants;
 }
 
+export async function getGithubAppInstallUrl(): Promise<string> {
+  const data = await apiAuthJson<{ installUrl: string }>(`/api/internal/github-app/install-url`);
+  return data.installUrl;
+}
+
 export async function getTenantOverview(organizationId: string, userId: string): Promise<TenantOverview> {
   return apiAuthJson<TenantOverview>(`/api/internal/tenants/${organizationId}/overview?userId=${encodeURIComponent(userId)}`);
 }

@@ -1,9 +1,9 @@
-export async function startProviderLink(
+export async function requestProviderLinkUrl(
   authApiUrl: string,
   provider: string,
   callbackURL: string,
   additionalData?: Record<string, unknown>
-): Promise<void> {
+): Promise<string> {
   const response = await fetch(`${authApiUrl}/api/auth/link-social`, {
     method: 'POST',
     credentials: 'include',
@@ -18,5 +18,14 @@ export async function startProviderLink(
         `http_${response.status}`
     );
   }
-  window.location.href = data.url;
+  return data.url;
+}
+
+export async function startProviderLink(
+  authApiUrl: string,
+  provider: string,
+  callbackURL: string,
+  additionalData?: Record<string, unknown>
+): Promise<void> {
+  window.location.href = await requestProviderLinkUrl(authApiUrl, provider, callbackURL, additionalData);
 }
