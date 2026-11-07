@@ -1,6 +1,6 @@
 import { createHmac, timingSafeEqual } from 'node:crypto';
-import { githubInstallationWebhookPayloadSchema, githubPushWebhookPayloadSchema } from '@karasu-lab/types/shared';
 import { applyInstallationWebhook, evaluatePushWebhook } from '@/lib/api-auth';
+import { parseGitHubWebhookPayload, type GitHubWorkflowRunWebhookPayload } from '@/lib/github-webhook';
 import { createIssueComment, findMergedPullRequestByCommit } from '@/lib/git-api';
 import { getTenantNpmRepository, getTenantNpmRepositoryByFullName } from '@/lib/npm-repository';
 import {
@@ -17,42 +17,13 @@ import { runPointerUpdate, type PointerUpdateResult } from '@/lib/webhook-automa
 
 export const runtime = 'nodejs';
 
-function defaultBranchOf(payload: unknown): string | null {
-  if (typeof payload !== 'object' || payload === null) return null;
-  const repository = (payload as { repository?: unknown }).repository;
-  if (typeof repository !== 'object' || repository === null) return null;
-  const branch = (repository as { default_branch?: unknown }).default_branch;
-  return typeof branch === 'string' ? branch : null;
-}
-
-interface WorkflowRunPayload {
-  action?: unknown;
-  workflow_run?: {
-    name?: unknown;
-    status?: unknown;
-    conclusion?: unknown;
-    head_sha?: unknown;
-    html_url?: unknown;
-    pull_requests?: { head?: { ref?: unknown } }[];
-  };
-  repository?: { full_name?: unknown };
-}
-
 const PUBLISH_WORKFLOW_NAME = 'Publish packages';
 const BUMP_BRANCH_PATTERN = /^chore\/bump-(.+)-([0-9a-f]{7})$/;
 
-async function handleWorkflowRun(payloadJson: unknown, routedOrganizationId: string | null): Promise<Response> {
-  const payload = payloadJson as WorkflowRunPayload;
+async function handleWorkflowRun(payload: GitHubWorkflowRunWebhookPayload, routedOrganizationId: string | null): Promise<Response> {
   const run = payload.workflow_run;
-  const repositoryFullName = typeof payload.repository?.full_name === 'string' ? payload.repository.full_name : null;
-  if (
-    payload.action !== 'completed' ||
-    !run ||
-    run.name !== PUBLISH_WORKFLOW_NAME ||
-    run.status !== 'completed' ||
-    typeof run.head_sha !== 'string' ||
-    !repositoryFullName
-  ) {
+  const repositoryFullName = payload.repository.full_name;
+  if (payload.action !== 'completed' || run.name !== PUBLISH_WORKFLOW_NAME || run.status !== 'completed') {
     return Response.json({ accepted: false, reason: 'event_ignored' }, { status: 202 });
   }
   const npmRepository = await getTenantNpmRepositoryByFullName(repositoryFullName).catch((caught) => {
@@ -71,7 +42,7 @@ async function handleWorkflowRun(payloadJson: unknown, routedOrganizationId: str
   if (pending.length === 0) return Response.json({ accepted: false, reason: 'no_pending_publish' }, { status: 202 });
   let bumpBranch: string | null = null;
   for (const entry of run.pull_requests ?? []) {
-    if (typeof entry.head?.ref === 'string' && BUMP_BRANCH_PATTERN.test(entry.head.ref)) {
+    if (BUMP_BRANCH_PATTERN.test(entry.head.ref)) {
       bumpBranch = entry.head.ref;
       break;
     }
@@ -95,7 +66,7 @@ async function handleWorkflowRun(payloadJson: unknown, routedOrganizationId: str
     (entry) => entry.repositoryFullName.split('/')[1] === repositoryName && entry.sha.startsWith(shaPrefix)
   );
   if (!target) return Response.json({ accepted: false, reason: 'no_pending_publish' }, { status: 202 });
-  const runUrl = typeof run.html_url === 'string' ? run.html_url : '';
+  const runUrl = run.html_url;
   try {
     const templates = await loadPublishCommentTemplates(organizationId, repositoryFullName);
     if (!templates) {
@@ -165,24 +136,28 @@ export async function POST(request: Request): Promise<Response> {
   } catch {
     return Response.json({ error: 'invalid_payload' }, { status: 400 });
   }
-  if (event === 'workflow_run') {
-    return handleWorkflowRun(payloadJson, routedOrganizationId);
+  const parsedPayload = parseGitHubWebhookPayload(event, payloadJson);
+  if (!parsedPayload.success) {
+    if (parsedPayload.reason === 'unknown_event') {
+      return Response.json({ accepted: false, reason: 'event_ignored' }, { status: 202 });
+    }
+    return Response.json({ error: 'invalid_payload' }, { status: 400 });
   }
-  if (event === 'installation') {
-    const parsedInstallation = githubInstallationWebhookPayloadSchema.safeParse(payloadJson);
-    if (!parsedInstallation.success) return Response.json({ error: 'invalid_payload' }, { status: 400 });
+  if (parsedPayload.event === 'workflow_run') {
+    return handleWorkflowRun(parsedPayload.data, routedOrganizationId);
+  }
+  if (parsedPayload.event === 'installation') {
     const result = await applyInstallationWebhook({
-      installationId: parsedInstallation.data.installation.id,
-      action: parsedInstallation.data.action,
+      installationId: parsedPayload.data.installation.id,
+      action: parsedPayload.data.action,
     });
     if (routedOrganizationId && result.organizationId && result.organizationId !== routedOrganizationId) {
       return Response.json({ error: 'invalid_signature' }, { status: 401 });
     }
     return Response.json(result, { status: 202 });
   }
-  const parsed = githubPushWebhookPayloadSchema.safeParse(payloadJson);
-  if (!parsed.success) return Response.json({ error: 'invalid_payload' }, { status: 400 });
-  const defaultBranch = defaultBranchOf(payloadJson);
+  const parsed = parsedPayload;
+  const defaultBranch = parsed.data.repository.default_branch;
   if (defaultBranch && parsed.data.ref !== `refs/heads/${defaultBranch}`) {
     return Response.json({ accepted: false, reason: 'not_default_branch' }, { status: 202 });
   }
