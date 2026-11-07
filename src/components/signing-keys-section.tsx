@@ -21,6 +21,7 @@ import {
   Switch,
   toast,
 } from '@karasu-lab/ui';
+import { startProviderLink } from '@/lib/provider-link';
 import type { UserSigningKey } from '@/lib/tenants';
 
 interface SigningKeysSectionProps {
@@ -120,7 +121,17 @@ export function SigningKeysSection({ authApiUrl, settingsUrl, keys, disabled, on
       refresh();
     });
 
-  const authorizeUrl = `${authApiUrl}/api/signing-keys/authorize?returnTo=${encodeURIComponent(settingsUrl)}`;
+  const [authorizing, setAuthorizing] = useState(false);
+
+  const authorize = async () => {
+    setAuthorizing(true);
+    try {
+      await startProviderLink(authApiUrl, 'github-signing-key', settingsUrl);
+    } catch (caught) {
+      toast.error(caught instanceof Error ? caught.message : t('actionError'));
+      setAuthorizing(false);
+    }
+  };
 
   return (
     <Card>
@@ -142,7 +153,8 @@ export function SigningKeysSection({ authApiUrl, settingsUrl, keys, disabled, on
             {busy && <Spinner />}
             {busy ? t('creating') : t('create')}
           </Button>
-          <Button variant="outline" disabled={disabled} render={<a href={authorizeUrl} />}>
+          <Button variant="outline" disabled={disabled || authorizing} onClick={authorize}>
+            {authorizing && <Spinner />}
             {t('authorize')}
           </Button>
         </div>
