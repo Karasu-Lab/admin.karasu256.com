@@ -22,7 +22,7 @@ function signatureValid(secret: string, body: string, header: string | null): bo
 }
 
 export async function POST(request: Request): Promise<Response> {
-  const secret = process.env.GITHUB_APP_WEBHOOK_SECRET;
+  const secret = process.env.GH_APP_WEBHOOK_SECRET;
   if (!secret) return Response.json({ error: 'webhook_not_configured' }, { status: 503 });
   const body = await request.text();
   if (!signatureValid(secret, body, request.headers.get('x-hub-signature-256'))) {
