@@ -428,8 +428,8 @@ const NPM_PUBLISH_PROGRESS_COMMENTS = `{
   "published": "Published {packageName}@{version} to GitHub Packages.\\n\\nPublish workflow run: {workflowRunUrl}",
   "publishFailed": "Publishing {packageName} at {commit} failed.\\n\\nPublish workflow run: {workflowRunUrl}",
   "pointerUpdating": "Pointer update in progress: {npmRepository} is being updated to {commit}.",
-  "pointerUpdated": "Pointer update completed: {npmRepository} now points to {commit}.",
-  "pointerUpdateFailed": "Pointer update failed: {npmRepository} could not be updated to {commit}."
+  "pointerUpdateFailed": "Pointer update failed: {npmRepository} could not be updated to {commit}.",
+  "publishing": "Publishing the packages in {npmRepository} at {commit}."
 }
 `;
 
