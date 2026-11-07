@@ -10,7 +10,7 @@ export default async function TenantSettingsPage({ params }: { params: Promise<{
   const installUrl = `${authApiUrl}/api/github-app/install?organizationId=${encodeURIComponent(id)}&returnTo=${encodeURIComponent(settingsUrl)}`;
 
   return (
-    <div className="flex min-h-screen flex-col md:flex-row">
+    <div className="flex min-h-screen w-full flex-col md:flex-row">
       <NavSidebar />
       <TenantSettingsClient tenantId={id} authApiUrl={authApiUrl} settingsUrl={settingsUrl} installUrl={installUrl} />
     </div>

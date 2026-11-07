@@ -8,7 +8,7 @@ export default async function Home({
 }) {
   const params = (await searchParams) ?? {};
   return (
-    <div className="flex min-h-screen flex-col md:flex-row">
+    <div className="flex min-h-screen w-full flex-col md:flex-row">
       <NavSidebar />
       <DashboardClient tenantId={params.tenant} />
     </div>
