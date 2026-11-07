@@ -91,8 +91,8 @@ export interface PublishCommentTemplates {
   published: string;
   publishFailed: string;
   pointerUpdating: string | null;
-  pointerUpdated: string | null;
   pointerUpdateFailed: string | null;
+  publishing: string | null;
 }
 
 const PUBLISH_COMMENT_TEMPLATES_PATH = '.github/publish-progress-comments.json';
@@ -119,8 +119,8 @@ export async function loadPublishCommentTemplates(
     published?: unknown;
     publishFailed?: unknown;
     pointerUpdating?: unknown;
-    pointerUpdated?: unknown;
     pointerUpdateFailed?: unknown;
+    publishing?: unknown;
   };
   try {
     parsed = JSON.parse(Buffer.from(data.content, 'base64').toString('utf8')) as typeof parsed;
@@ -143,8 +143,8 @@ export async function loadPublishCommentTemplates(
     published: parsed.published,
     publishFailed: parsed.publishFailed,
     pointerUpdating: optionalText(parsed.pointerUpdating),
-    pointerUpdated: optionalText(parsed.pointerUpdated),
     pointerUpdateFailed: optionalText(parsed.pointerUpdateFailed),
+    publishing: optionalText(parsed.publishing),
   };
 }
 

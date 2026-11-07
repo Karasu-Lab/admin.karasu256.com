@@ -447,7 +447,7 @@ export async function POST(request: Request): Promise<Response> {
     const repositoryFullName = decision.package.repositoryFullName;
     try {
       if (pointerCommentId && pointerTemplates) {
-        const template = outcome === 'completed' ? pointerTemplates.pointerUpdated : pointerTemplates.pointerUpdateFailed;
+        const template = outcome === 'completed' ? pointerTemplates.pointerUpdate : pointerTemplates.pointerUpdateFailed;
         if (template) {
           await updateIssueComment({
             organizationId,
@@ -568,17 +568,19 @@ export async function POST(request: Request): Promise<Response> {
             npmRepository: npmRepository.npmRepositoryFullName,
           });
         } else {
-          const comment = await createIssueComment({
-            organizationId: decision.organizationId,
-            repositoryFullName: linked.repositoryFullName,
-            issueNumber: sourcePullRequest.number,
-            body: renderCommentTemplate(templates.pointerUpdate, {
-              pullRequestUrl: result.pullRequestUrl,
-              npmRepository: npmRepository.npmRepositoryFullName ?? '',
-              commit: parsed.data.after.slice(0, 7),
-            }),
-          });
-          await setPublishProgressComment(progressId, comment.id);
+          if (templates.publishing) {
+            const comment = await createIssueComment({
+              organizationId: decision.organizationId,
+              repositoryFullName: linked.repositoryFullName,
+              issueNumber: sourcePullRequest.number,
+              body: renderCommentTemplate(templates.publishing, {
+                pullRequestUrl: result.pullRequestUrl,
+                npmRepository: npmRepository.npmRepositoryFullName ?? '',
+                commit: parsed.data.after.slice(0, 7),
+              }),
+            });
+            await setPublishProgressComment(progressId, comment.id);
+          }
           try {
             await createCommitStatus({
               organizationId: decision.organizationId,
