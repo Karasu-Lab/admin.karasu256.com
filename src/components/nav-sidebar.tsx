@@ -3,7 +3,7 @@
 import { motion } from 'framer-motion';
 import { useTranslations } from 'next-intl';
 import { Link, usePathname } from '@/i18n/navigation';
-import { Container, Image as ImageIcon, LayoutDashboard } from 'lucide-react';
+import { LayoutDashboard, Package } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export function NavSidebar() {
@@ -12,8 +12,7 @@ export function NavSidebar() {
 
   const items = [
     { href: '/', label: t('dashboard'), icon: LayoutDashboard },
-    { href: '/containers', label: t('containers'), icon: Container },
-    { href: '/images', label: t('images'), icon: ImageIcon },
+    { href: '/npm-setup', label: t('npmSetup'), icon: Package },
   ] as const;
 
   return (

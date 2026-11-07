@@ -8,9 +8,10 @@ declare global {
       NEXT_PUBLIC_AUTH_API_URL: string;
       ROOT_APP_URL: string;
       NEXT_PUBLIC_APP_URL: string;
-      API_URL?: string;
-      VERCEL_CLIENT_ID?: string;
-      VERCEL_CLIENT_SECRET?: string;
+      AUTH_API_URL?: string;
+      INTERNAL_API_SECRET?: string;
+      GITHUB_APP_WEBHOOK_SECRET?: string;
+      COMMIT_SIGNING_PRIVATE_KEY?: string;
     }
   }
 }

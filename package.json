@@ -10,8 +10,8 @@
     "lint": "eslint"
   },
   "dependencies": {
-    "@karasu-lab/types": "0.1.0-5fc5494",
-    "@karasu-lab/ui": "0.1.0-df38f4a",
+    "@karasu-lab/types": "0.1.0-3099873",
+    "@karasu-lab/ui": "0.1.0-1a86e48",
     "@karasu-lab/utils": "0.1.0-be51f04",
     "clsx": "^2.1.1",
     "framer-motion": "^12.38.0",
@@ -22,8 +22,7 @@
     "react-dom": "19.2.4",
     "react-icons": "^5.6.0",
     "server-only": "^0.0.1",
-    "tailwind-merge": "^3.6.0",
-    "vercel": "^54.1.0"
+    "tailwind-merge": "^3.6.0"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",

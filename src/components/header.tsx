@@ -1,26 +1,30 @@
 import Link from 'next/link';
 import { getLocale, getTranslations } from 'next-intl/server';
 import { Header as UiHeader, AccountMenu, type CountryCode } from '@karasu-lab/ui';
-import { getRootAppUrl, getSignInUrl, signOutAction, setLocaleAction } from '@karasu-lab/utils/server';
-import { VercelConnectionStore } from '@/lib/vercel';
-import { VercelConnectButton } from './vercel-connect-button';
+import { getRootAppUrl, getSessionUser, getSignInUrl, signOutAction, setLocaleAction } from '@karasu-lab/utils/server';
+import { listUserTenants } from '@/lib/api-auth';
+import type { TenantSummary } from '@/lib/tenants';
+import { TenantMenuSection } from './tenant-menu-section';
 
 const localeLabels: Record<'en' | 'ja', { label: string; countryCode: CountryCode }> = {
   en: { label: 'English', countryCode: 'US' },
   ja: { label: '日本語', countryCode: 'JP' },
 };
 
-/**
- * Site-wide header. Shows an account menu (driven by the nearest
- * `SessionProvider`, see the root layout) when authenticated, or a sign-in
- * button when not, plus a language switcher.
- */
 export async function Header() {
   const signInUrl = await getSignInUrl(process.env.NEXT_PUBLIC_AUTH_URL);
   const rootUrl = await getRootAppUrl();
   const t = await getTranslations('header');
   const currentLocale = await getLocale();
-  const vercelConnection = await new VercelConnectionStore().get();
+  const user = await getSessionUser(process.env.NEXT_PUBLIC_AUTH_API_URL);
+  let tenants: TenantSummary[] = [];
+  if (user) {
+    try {
+      tenants = await listUserTenants(user.uid);
+    } catch {
+      tenants = [];
+    }
+  }
 
   return (
     <UiHeader
@@ -33,14 +37,15 @@ export async function Header() {
       currentLocale={currentLocale}
       onLocaleChange={setLocaleAction}
     >
-      <VercelConnectButton connected={vercelConnection !== null} connectLabel={t('connectVercel')} connectedLabel={t('vercelConnected')} />
       <AccountMenu
         signInHref={signInUrl}
         settingsHref={`${rootUrl}/settings`}
         onSignOut={signOutAction}
         labels={{ signIn: t('signIn'), settings: t('settings'), signOut: t('signOut') }}
         triggerAriaLabel={t('accountMenuLabel')}
-      />
+      >
+        {user ? <TenantMenuSection tenants={tenants} /> : null}
+      </AccountMenu>
     </UiHeader>
   );
 }
