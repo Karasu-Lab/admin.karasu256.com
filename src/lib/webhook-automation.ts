@@ -1,6 +1,6 @@
 import 'server-only';
-import { createBotPullRequest, updateLinkedPackagePointer, type PushWebhookDecision } from './api-auth';
-import { requestSignedCommit } from './git-api';
+import { updateLinkedPackagePointer, type PushWebhookDecision } from './api-auth';
+import { createBotPullRequest, requestSignedCommit } from './git-api';
 import { seedMirrorIfNeeded } from './mirror-seed';
 import type { TenantNpmRepository } from './npm-repository';
 

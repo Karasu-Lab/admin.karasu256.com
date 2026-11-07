@@ -48,24 +48,6 @@ export async function getTenantOverview(organizationId: string, userId: string):
   return apiAuthJson<TenantOverview>(`/api/internal/tenants/${organizationId}/overview?userId=${encodeURIComponent(userId)}`);
 }
 
-export async function listTenantRepositories(organizationId: string): Promise<InstallationRepository[]> {
-  const data = await apiAuthJson<{ repositories: InstallationRepository[] }>(
-    `/api/internal/tenants/${organizationId}/github-repositories`
-  );
-  return data.repositories;
-}
-
-export async function createTenantRepository(
-  organizationId: string,
-  body: { userId: string; name: string; description?: string; private?: boolean; isTemplate?: boolean }
-): Promise<InstallationRepository> {
-  const data = await apiAuthJson<{ repository: InstallationRepository }>(
-    `/api/internal/tenants/${organizationId}/github-repositories`,
-    { method: 'POST', body }
-  );
-  return data.repository;
-}
-
 export async function linkTenantPackage(
   organizationId: string,
   body: {
@@ -87,28 +69,16 @@ export async function setTenantPackageEnabled(
   await apiAuthJson(`/api/internal/tenants/${organizationId}/packages/${packageId}/enabled`, { method: 'POST', body });
 }
 
+export async function unlinkTenantPackage(organizationId: string, packageId: string, body: { userId: string }): Promise<void> {
+  await apiAuthJson(`/api/internal/tenants/${organizationId}/packages/${packageId}`, { method: 'DELETE', body });
+}
+
 export async function uninstallTenantBot(organizationId: string, body: { userId: string }): Promise<void> {
   await apiAuthJson(`/api/internal/tenants/${organizationId}/github-installation`, { method: 'DELETE', body });
 }
 
 export async function getInstallationToken(organizationId: string): Promise<{ token: string; expiresAt: string }> {
   return apiAuthJson(`/api/internal/tenants/${organizationId}/github-installation-token`, { method: 'POST', body: {} });
-}
-
-export async function createBotPullRequest(body: {
-  organizationId: string;
-  repositoryFullName: string;
-  title: string;
-  head: string;
-  base: string;
-  body?: string;
-  enableAutoMerge?: boolean;
-}): Promise<{ number: number; url: string; autoMergeEnabled: boolean }> {
-  const data = await apiAuthJson<{ pullRequest: { number: number; url: string; autoMergeEnabled: boolean } }>(
-    '/api/internal/github/pulls',
-    { method: 'POST', body }
-  );
-  return data.pullRequest;
 }
 
 export async function updateLinkedPackagePointer(organizationId: string, packageId: string, sha: string): Promise<void> {
