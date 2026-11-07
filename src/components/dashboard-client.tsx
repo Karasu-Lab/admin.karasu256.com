@@ -50,6 +50,9 @@ export function DashboardClient({ tenantId }: { tenantId?: string }) {
   const npmRepository = data?.npmRepository ?? null;
   const repositories = data?.repositories ?? [];
   const settingsHref = selected ? `/tenants/${selected.id}/tenant-settings` : undefined;
+  const setupRepositoryFullNames = [npmRepository?.npmRepositoryFullName, npmRepository?.workflowTemplateRepositoryFullName].filter(
+    (name): name is string => Boolean(name)
+  );
   const steps: Step[] = [
     {
       done: Boolean(selected),
@@ -152,13 +155,16 @@ export function DashboardClient({ tenantId }: { tenantId?: string }) {
           </CardContent>
         </Card>
       )}
-      {loading && <RepositoryImport organizationId={tenantId} repositories={[]} linkedFullNames={[]} disabled />}
+      {loading && (
+        <RepositoryImport organizationId={tenantId} repositories={[]} linkedFullNames={[]} disabled excludedFullNames={setupRepositoryFullNames} />
+      )}
       {!loading && selected && overview?.installation && (
         <RepositoryImport
           organizationId={selected.id}
           repositories={repositories}
           linkedFullNames={overview.linkedPackages.map((linked) => linked.repositoryFullName)}
           onRefresh={load}
+          excludedFullNames={setupRepositoryFullNames}
         />
       )}
     </main>
