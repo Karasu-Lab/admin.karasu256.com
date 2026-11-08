@@ -5,24 +5,27 @@ import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import {
   Button,
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
   Checkbox,
   Dialog,
   DialogBackdrop,
   DialogPopup,
   DialogPortal,
   DialogTitle,
+  DropdownMenu,
+  DropdownMenuItem,
+  DropdownMenuPopup,
+  DropdownMenuPortal,
+  DropdownMenuPositioner,
+  DropdownMenuTrigger,
   Input,
   Label,
   Spinner,
   Switch,
   toast,
 } from '@karasu-lab/ui';
+import { KeyRound, MoreHorizontal, Pencil, Plus, RefreshCw } from 'lucide-react';
 import type { UserSigningKey } from '@/lib/tenants';
+import { SettingsItemContainer, SettingsItemGroup } from './settings/settings-item-container';
 
 interface SigningKeysSectionProps {
   authApiUrl: string;
@@ -121,12 +124,8 @@ export function SigningKeysSection({ authApiUrl, keys, disabled, onRefresh }: Si
     });
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>{t('registrationTitle')}</CardTitle>
-        <CardDescription>{t('description')}</CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-6">
+    <SettingsItemContainer title={t('registrationTitle')} description={t('description')} icon={KeyRound} iconBackgroundColor="#ff9500">
+      <div className="space-y-6">
         {sessionId === null && <p className="text-sm text-muted-foreground">{t('sessionLoading')}</p>}
         <div className="flex flex-wrap items-end gap-2">
           <Input
@@ -137,24 +136,26 @@ export function SigningKeysSection({ authApiUrl, keys, disabled, onRefresh }: Si
             className="max-w-xs"
           />
           <Button onClick={create} disabled={disabled || busy || !sessionId || !newName}>
-            {busy && <Spinner />}
-            {busy ? t('creating') : t('create')}
+            {busy ? <Spinner /> : <Plus />}
+            {t('createShort')}
           </Button>
         </div>
-        <div className="space-y-4">
-          {keys.map((key) => (
-            <KeyRow
-              key={key.id}
-              signingKey={key}
-              busy={busy || Boolean(disabled)}
-              sessionReady={Boolean(sessionId)}
-              onRotate={() => rotate(key.id)}
-              onRename={(name) => rename(key.id, name)}
-              onToggle={(enabled) => setEnabled(key.id, enabled)}
-            />
-          ))}
-        </div>
-      </CardContent>
+        {keys.length > 0 && (
+          <SettingsItemGroup>
+            {keys.map((key) => (
+              <KeyRow
+                key={key.id}
+                signingKey={key}
+                busy={busy || Boolean(disabled)}
+                sessionReady={Boolean(sessionId)}
+                onRotate={() => rotate(key.id)}
+                onRename={(name) => rename(key.id, name)}
+                onToggle={(enabled) => setEnabled(key.id, enabled)}
+              />
+            ))}
+          </SettingsItemGroup>
+        )}
+      </div>
       <Dialog
         open={privateKey !== null}
         onOpenChange={(open) => {
@@ -190,7 +191,7 @@ export function SigningKeysSection({ authApiUrl, keys, disabled, onRefresh }: Si
           </DialogPopup>
         </DialogPortal>
       </Dialog>
-    </Card>
+    </SettingsItemContainer>
   );
 }
 
@@ -210,23 +211,82 @@ function KeyRow({
   onToggle: (enabled: boolean) => void;
 }) {
   const t = useTranslations('SigningKeys');
+  const [renameOpen, setRenameOpen] = useState(false);
   const [name, setName] = useState(signingKey.name);
+  const actionsDisabled = busy || !sessionReady;
+
   return (
-    <div className="space-y-2 rounded-md border p-4">
-      <div className="flex flex-wrap items-center gap-2">
-        <Input value={name} onChange={(event) => setName(event.target.value)} className="max-w-xs" />
-        <Button variant="outline" onClick={() => onRename(name)} disabled={busy || !sessionReady || !name || name === signingKey.name}>
-          {t('rename')}
-        </Button>
-        <Button variant="outline" onClick={onRotate} disabled={busy || !sessionReady}>
-          {t('rotate')}
-        </Button>
-        <span className="ml-auto flex items-center gap-2 text-sm">
-          {t('enabled')}
-          <Switch checked={signingKey.enabled} onCheckedChange={onToggle} disabled={busy || !sessionReady} />
+    <SettingsItemContainer
+      title={signingKey.name}
+      icon={KeyRound}
+      trailing={
+        <span className="flex items-center gap-1">
+          <Switch checked={signingKey.enabled} onCheckedChange={onToggle} disabled={actionsDisabled} aria-label={t('enabled')} />
+          <DropdownMenu>
+            <DropdownMenuTrigger
+              render={
+                <Button size="icon" variant="ghost" aria-label={t('menu')}>
+                  <MoreHorizontal className="size-4" />
+                </Button>
+              }
+            />
+            <DropdownMenuPortal>
+              <DropdownMenuPositioner align="end" side="bottom" sideOffset={4}>
+                <DropdownMenuPopup>
+                  <DropdownMenuItem
+                    disabled={actionsDisabled}
+                    onClick={() => {
+                      setName(signingKey.name);
+                      setRenameOpen(true);
+                    }}
+                  >
+                    <Pencil className="size-4" />
+                    {t('rename')}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem disabled={actionsDisabled} onClick={onRotate}>
+                    <RefreshCw className="size-4" />
+                    {t('rotate')}
+                  </DropdownMenuItem>
+                </DropdownMenuPopup>
+              </DropdownMenuPositioner>
+            </DropdownMenuPortal>
+          </DropdownMenu>
         </span>
+      }
+    >
+      <div className="space-y-2">
+        <pre className="overflow-auto rounded-md bg-muted p-3 text-xs whitespace-pre-wrap break-all">{signingKey.publicKey}</pre>
       </div>
-      <pre className="overflow-auto rounded-md bg-muted p-3 text-xs whitespace-pre-wrap break-all">{signingKey.publicKey}</pre>
-    </div>
+      <Dialog open={renameOpen} onOpenChange={setRenameOpen}>
+        <DialogPortal>
+          <DialogBackdrop />
+          <DialogPopup className="space-y-4">
+            <DialogTitle>{t('rename')}</DialogTitle>
+            <div className="space-y-2">
+              <Label htmlFor={`rename-signing-key-${signingKey.id}`}>{t('name')}</Label>
+              <Input
+                id={`rename-signing-key-${signingKey.id}`}
+                value={name}
+                onChange={(event) => setName(event.target.value)}
+              />
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setRenameOpen(false)}>
+                {t('cancel')}
+              </Button>
+              <Button
+                disabled={!name || name === signingKey.name}
+                onClick={() => {
+                  onRename(name);
+                  setRenameOpen(false);
+                }}
+              >
+                {t('save')}
+              </Button>
+            </div>
+          </DialogPopup>
+        </DialogPortal>
+      </Dialog>
+    </SettingsItemContainer>
   );
 }

@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { Button, Card, CardContent, Input, Label, Spinner, toast } from '@karasu-lab/ui';
 import { getTenantProfileAction, type TenantProfileData } from '@/app/actions';
+import { useReportLoading } from './settings/loading-context';
 
 export function TenantProfileClient({ tenantId, authApiUrl }: { tenantId: string; authApiUrl: string }) {
   const t = useTranslations('TenantProfile');
@@ -55,13 +56,10 @@ export function TenantProfileClient({ tenantId, authApiUrl }: { tenantId: string
   };
 
   const loading = !data;
+  useReportLoading('tenant-profile', loading);
 
   return (
     <main className="flex-1 space-y-6 p-6">
-      <h1 className="text-2xl font-bold">
-        {t('title')}
-        {data ? ` — ${data.name}` : ''}
-      </h1>
       <Card>
         <CardContent className="space-y-4 pt-6">
           <div className="space-y-2">

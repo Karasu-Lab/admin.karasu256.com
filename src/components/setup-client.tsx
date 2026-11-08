@@ -4,8 +4,6 @@ import { useCallback, useEffect, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import {
   Button,
-  Card,
-  CardContent,
   Dialog,
   DialogBackdrop,
   DialogPopup,
@@ -14,6 +12,7 @@ import {
   Spinner,
   toast,
 } from '@karasu-lab/ui';
+import { Package, PackageCheck, Unlink, Workflow } from 'lucide-react';
 import {
   getSetupDataAction,
   startNpmRepositorySetupAction,
@@ -22,6 +21,8 @@ import {
   type SetupData,
 } from '@/app/actions';
 import { RepositorySetupForm } from './repository-setup-form';
+import { SettingsItemContainer } from './settings/settings-item-container';
+import { useReportLoading } from './settings/loading-context';
 import { SigningKeyAuthorizationSection } from './signing-key-authorization-section';
 import { SigningKeysSection } from './signing-keys-section';
 
@@ -34,7 +35,6 @@ export function SetupClient({
   authApiUrl: string;
   appUrl: string;
 }) {
-  const t = useTranslations('Setup');
   const tNpmSetup = useTranslations('NpmSetup');
   const [data, setData] = useState<SetupData | null>(null);
   const [unlinkConfirmOpen, setUnlinkConfirmOpen] = useState(false);
@@ -68,6 +68,7 @@ export function SetupClient({
   }, [load]);
 
   const loading = !data;
+  useReportLoading('setup', loading);
   const signedIn = data?.signedIn ?? false;
   const selected = data?.selected ?? null;
   const overview = data?.overview ?? null;
@@ -77,20 +78,21 @@ export function SetupClient({
 
   return (
     <main className="flex-1 space-y-6 p-6">
-      <h1 className="text-2xl font-bold">{t('title')}</h1>
       {!loading && !signedIn && <p className="text-muted-foreground">{tNpmSetup('noTenant')}</p>}
       {!loading && signedIn && !selected && <p className="text-muted-foreground">{tNpmSetup('noTenant')}</p>}
       {!loading && selected && overview && !overview.installation && (
         <p className="text-muted-foreground">{tNpmSetup('noTenant')}</p>
       )}
       {selected && alreadyDone && (
-        <Card>
-          <CardContent className="space-y-3 pt-6">
-            <p>{tNpmSetup('alreadyDone')}</p>
-            <p className="text-sm text-muted-foreground">
-              {npmRepository?.npmRepositoryFullName} · {npmRepository?.workflowTemplateRepositoryFullName}
-            </p>
+        <SettingsItemContainer
+          title={tNpmSetup('alreadyDone')}
+          description={`${npmRepository?.npmRepositoryFullName ?? ''} · ${npmRepository?.workflowTemplateRepositoryFullName ?? ''}`}
+          icon={PackageCheck}
+          iconBackgroundColor="#34c759"
+        >
+          <div className="space-y-3">
             <Button variant="destructive" onClick={() => setUnlinkConfirmOpen(true)}>
+              <Unlink />
               {tNpmSetup('unlink')}
             </Button>
             <Dialog open={unlinkConfirmOpen} onOpenChange={setUnlinkConfirmOpen}>
@@ -116,8 +118,8 @@ export function SetupClient({
                 </DialogPopup>
               </DialogPortal>
             </Dialog>
-          </CardContent>
-        </Card>
+          </div>
+        </SettingsItemContainer>
       )}
       {(loading || (selected && overview?.installation)) && (
         <>
@@ -136,6 +138,8 @@ export function SetupClient({
             startSetup={({ organizationId, repositoryName }) =>
               startNpmRepositorySetupAction({ organizationId, npmRepositoryName: repositoryName })
             }
+            icon={Package}
+            iconBackgroundColor="#cb3837"
           />
           <RepositorySetupForm
             title={tNpmSetup('templateTitle')}
@@ -152,6 +156,8 @@ export function SetupClient({
             startSetup={({ organizationId, repositoryName }) =>
               startTemplateRepositorySetupAction({ organizationId, templateRepositoryName: repositoryName })
             }
+            icon={Workflow}
+            iconBackgroundColor="#6e5494"
           />
         </>
       )}

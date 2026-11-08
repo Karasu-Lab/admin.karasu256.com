@@ -5,21 +5,25 @@ import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import {
   Button,
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
   Dialog,
   DialogBackdrop,
   DialogPopup,
   DialogPortal,
   DialogTitle,
+  DropdownMenu,
+  DropdownMenuItem,
+  DropdownMenuPopup,
+  DropdownMenuPortal,
+  DropdownMenuPositioner,
+  DropdownMenuTrigger,
   Spinner,
   Switch,
   toast,
 } from '@karasu-lab/ui';
+import { MoreHorizontal, Package, Unlink } from 'lucide-react';
 import { setPackageEnabledAction, unlinkPackageAction } from '@/app/actions';
 import type { TenantLinkedPackage } from '@/lib/tenants';
+import { SettingsItemContainer, SettingsItemGroup } from './settings/settings-item-container';
 
 export function LinkedPackagesSection({
   organizationId,
@@ -73,31 +77,52 @@ export function LinkedPackagesSection({
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>{t('title')}</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        {packages.length === 0 && !disabled && <p className="text-sm text-muted-foreground">{t('empty')}</p>}
-        {packages.map((linkedPackage) => (
-          <div key={linkedPackage.id} className="space-y-2 rounded-md border p-4">
-            <div className="min-w-0 font-medium break-words">{linkedPackage.repositoryFullName}</div>
-            <div className="flex w-full items-center">
-              <span className="text-sm">{t('autoUpdate')}</span>
-              <span className="ml-auto flex items-center">
-                <Switch
-                  checked={linkedPackage.enabled}
-                  disabled={disabled || busyId === linkedPackage.id}
-                  onCheckedChange={(enabled) => toggle(linkedPackage, enabled)}
-                />
-              </span>
-            </div>
-            <Button variant="destructive" className="w-full" disabled={disabled} onClick={() => setUnlinkTarget(linkedPackage)}>
-              {t('unlink')}
-            </Button>
-          </div>
-        ))}
-      </CardContent>
+    <>
+      {packages.length === 0 && !disabled && <p className="text-sm text-muted-foreground">{t('empty')}</p>}
+      {packages.length > 0 && (
+        <SettingsItemGroup>
+          {packages.map((linkedPackage) => (
+            <SettingsItemContainer
+              key={linkedPackage.id}
+              title={linkedPackage.repositoryFullName}
+              icon={Package}
+              trailing={
+                <span className="flex items-center gap-1">
+                  <Switch
+                    checked={linkedPackage.enabled}
+                    disabled={disabled || busyId === linkedPackage.id}
+                    onCheckedChange={(enabled) => toggle(linkedPackage, enabled)}
+                    aria-label={t('autoUpdate')}
+                  />
+                  <DropdownMenu>
+                    <DropdownMenuTrigger
+                      render={
+                        <Button size="icon" variant="ghost" aria-label={t('menu')}>
+                          <MoreHorizontal className="size-4" />
+                        </Button>
+                      }
+                    />
+                    <DropdownMenuPortal>
+                      <DropdownMenuPositioner align="end" side="bottom" sideOffset={4}>
+                        <DropdownMenuPopup>
+                          <DropdownMenuItem
+                            className="text-destructive focus:text-destructive hover:text-destructive"
+                            disabled={disabled}
+                            onClick={() => setUnlinkTarget(linkedPackage)}
+                          >
+                            <Unlink className="size-4" />
+                            {t('unlink')}
+                          </DropdownMenuItem>
+                        </DropdownMenuPopup>
+                      </DropdownMenuPositioner>
+                    </DropdownMenuPortal>
+                  </DropdownMenu>
+                </span>
+              }
+            />
+          ))}
+        </SettingsItemGroup>
+      )}
       <Dialog open={unlinkTarget !== null} onOpenChange={(open) => !open && setUnlinkTarget(null)}>
         <DialogPortal>
           <DialogBackdrop />
@@ -111,13 +136,13 @@ export function LinkedPackagesSection({
                 {t('cancel')}
               </Button>
               <Button variant="destructive" onClick={unlink} disabled={unlinking}>
-                {unlinking && <Spinner />}
-                {unlinking ? t('unlinking') : t('unlink')}
+                {unlinking ? <Spinner /> : <Unlink />}
+                {t('unlink')}
               </Button>
             </div>
           </DialogPopup>
         </DialogPortal>
       </Dialog>
-    </Card>
+    </>
   );
 }
