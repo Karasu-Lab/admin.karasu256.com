@@ -4,10 +4,6 @@ import { useCallback, useEffect, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import {
   Button,
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
   Dialog,
   DialogBackdrop,
   DialogPopup,
@@ -18,9 +14,11 @@ import {
   Spinner,
   toast,
 } from '@karasu-lab/ui';
+import { Copy, Plus, RefreshCw, Webhook } from 'lucide-react';
 import { getPackagesDataAction, rotateWebhookSecretAction, type PackagesData } from '@/app/actions';
 import { LinkedPackagesSection } from './linked-packages-section';
 import { useReportLoading } from './settings/loading-context';
+import { SettingsItemContainer } from './settings/settings-item-container';
 
 export function PackagesClient({ tenantId }: { tenantId?: string }) {
   const t = useTranslations('Packages');
@@ -81,18 +79,20 @@ export function PackagesClient({ tenantId }: { tenantId?: string }) {
       {!loading && !signedIn && <p className="text-muted-foreground">{tNpmSetup('noTenant')}</p>}
       {!loading && signedIn && !selected && <p className="text-muted-foreground">{tNpmSetup('noTenant')}</p>}
       {(loading || selected) && (
-        <Card>
-          <CardHeader>
-            <CardTitle>{t('webhookTitle')}</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {!loading && canManage && !webhookSecret && <p className="text-sm text-muted-foreground">{t('webhookSecretNotSet')}</p>}
+        <SettingsItemContainer
+          title={t('webhookTitle')}
+          description={!loading && canManage && !webhookSecret ? t('webhookSecretNotSet') : undefined}
+          icon={Webhook}
+          iconBackgroundColor="#af52de"
+        >
+          <div className="space-y-4">
             {!loading && canManage && webhookSecret && (
               <div className="space-y-2">
                 <Label htmlFor="webhook-secret">{t('webhookSecret')}</Label>
                 <div className="flex gap-2">
                   <Input id="webhook-secret" value={webhookSecret} readOnly />
                   <Button variant="outline" onClick={() => void handleCopyWebhookSecret()}>
+                    <Copy />
                     {t('webhookCopy')}
                   </Button>
                 </div>
@@ -100,11 +100,12 @@ export function PackagesClient({ tenantId }: { tenantId?: string }) {
             )}
             <div className="flex gap-2">
               <Button variant="outline" onClick={() => setRotateDialogOpen(true)} disabled={loading || !canManage || rotating}>
-                {webhookSecret ? t('webhookSecretRotate') : t('webhookSecretGenerate')}
+                {webhookSecret ? <RefreshCw /> : <Plus />}
+                {webhookSecret ? t('webhookSecretRotate') : t('webhookSecretGenerateShort')}
               </Button>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </SettingsItemContainer>
       )}
       {(loading || selected) && (
         <LinkedPackagesSection
@@ -127,8 +128,8 @@ export function PackagesClient({ tenantId }: { tenantId?: string }) {
                 {t('cancel')}
               </Button>
               <Button onClick={() => void handleRotateWebhookSecret()} disabled={rotating}>
-                {rotating && <Spinner />}
-                {rotating ? t('webhookSecretRotating') : webhookSecret ? t('webhookSecretRotate') : t('webhookSecretGenerate')}
+                {rotating ? <Spinner /> : webhookSecret ? <RefreshCw /> : <Plus />}
+                {webhookSecret ? t('webhookSecretRotate') : t('webhookSecretGenerateShort')}
               </Button>
             </div>
           </DialogPopup>
