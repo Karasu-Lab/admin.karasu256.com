@@ -2,8 +2,11 @@
 
 import { useEffect, useState } from 'react';
 import { useTranslations } from 'next-intl';
-import { Badge, Card, CardContent, CardHeader, CardTitle, Spinner } from '@karasu-lab/ui';
+import { Package } from 'lucide-react';
+import { Badge, Spinner } from '@karasu-lab/ui';
 import { getLiveFeedAction, type LiveFeedData, type PackageUpdateEvent } from '@/app/actions';
+import { SettingsItemContainer, SettingsItemGroup } from './settings/settings-item-container';
+import { useReportLoading } from './settings/loading-context';
 
 export function LiveFeed({
   tenantId,
@@ -16,6 +19,7 @@ export function LiveFeed({
 }) {
   const t = useTranslations('LiveFeed');
   const [feed, setFeed] = useState<LiveFeedData | null>(initialFeed ?? null);
+  useReportLoading('live-feed', feed === null);
 
   useEffect(() => {
     if (!tenantId) {
@@ -47,32 +51,36 @@ export function LiveFeed({
   const recent = feed?.recent ?? [];
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>{t('title')}</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-6">
-        <div className="space-y-3">
-          <p className="text-sm font-medium">{t('processing')}</p>
-          {loaded && processing.length === 0 && <p className="text-sm text-muted-foreground">{t('noProcessing')}</p>}
-          {processing.map((event) => (
-            <div key={event.id} className="flex flex-wrap items-center gap-2 rounded-md border p-3">
-              <Spinner />
-              <span className="min-w-0 font-medium break-words">{event.repositoryFullName}</span>
-              <span className="text-sm text-muted-foreground">{event.toSha.slice(0, 7)}</span>
-              <span className="ml-auto text-sm text-muted-foreground">{new Date(event.startedAt).toLocaleString()}</span>
-            </div>
-          ))}
-        </div>
-        <div className="space-y-3">
-          <p className="text-sm font-medium">{t('recentTitle')}</p>
-          {loaded && recent.length === 0 && <p className="text-sm text-muted-foreground">{t('noRecent')}</p>}
-          {recent.map((event) => (
-            <RecentRow key={event.id} event={event} completedLabel={t('completed')} failedLabel={t('failed')} />
-          ))}
-        </div>
-      </CardContent>
-    </Card>
+    <div className="space-y-6">
+      <div className="space-y-3">
+        <p className="text-sm font-medium">{t('processing')}</p>
+        {loaded && processing.length === 0 && <p className="text-sm text-muted-foreground">{t('noProcessing')}</p>}
+        {processing.length > 0 && (
+          <SettingsItemGroup>
+            {processing.map((event) => (
+              <SettingsItemContainer
+                key={event.id}
+                title={event.repositoryFullName}
+                description={`${event.toSha.slice(0, 7)} · ${new Date(event.startedAt).toLocaleString()}`}
+                icon={Package}
+                trailing={<Spinner />}
+              />
+            ))}
+          </SettingsItemGroup>
+        )}
+      </div>
+      <div className="space-y-3">
+        <p className="text-sm font-medium">{t('recentTitle')}</p>
+        {loaded && recent.length === 0 && <p className="text-sm text-muted-foreground">{t('noRecent')}</p>}
+        {recent.length > 0 && (
+          <SettingsItemGroup>
+            {recent.map((event) => (
+              <RecentRow key={event.id} event={event} completedLabel={t('completed')} failedLabel={t('failed')} />
+            ))}
+          </SettingsItemGroup>
+        )}
+      </div>
+    </div>
   );
 }
 
@@ -86,15 +94,15 @@ function RecentRow({
   failedLabel: string;
 }) {
   return (
-    <div className="flex flex-wrap items-center gap-2 rounded-md border p-3">
-      <span className="min-w-0 font-medium break-words">{event.repositoryFullName}</span>
-      <Badge variant={event.status === 'completed' ? 'default' : 'destructive'}>
-        {event.status === 'completed' ? completedLabel : failedLabel}
-      </Badge>
-      <span className="text-sm text-muted-foreground">{event.toSha.slice(0, 7)}</span>
-      <span className="ml-auto text-sm text-muted-foreground">
-        {event.finishedAt ? new Date(event.finishedAt).toLocaleString() : ''}
-      </span>
-    </div>
+    <SettingsItemContainer
+      title={event.repositoryFullName}
+      description={`${event.toSha.slice(0, 7)}${event.finishedAt ? ` · ${new Date(event.finishedAt).toLocaleString()}` : ''}`}
+      icon={Package}
+      trailing={
+        <Badge variant={event.status === 'completed' ? 'default' : 'destructive'}>
+          {event.status === 'completed' ? completedLabel : failedLabel}
+        </Badge>
+      }
+    />
   );
 }

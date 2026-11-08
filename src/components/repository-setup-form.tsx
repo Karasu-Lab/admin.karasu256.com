@@ -3,9 +3,11 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { Button, Card, CardContent, CardDescription, CardHeader, CardTitle, Input, Label, Spinner, toast } from '@karasu-lab/ui';
+import { Button, Input, Label, Spinner, toast } from '@karasu-lab/ui';
+import { Package, Plus, RefreshCw, type LucideIcon } from 'lucide-react';
 import type { RepositorySetupOutcome } from '@/app/actions';
 import type { InstallationRepository } from '@/lib/tenants';
+import { SettingsItemContainer } from './settings/settings-item-container';
 
 type RepositoryPlan = 'create' | 'overwrite' | 'blocked';
 
@@ -22,6 +24,8 @@ export function RepositorySetupForm({
   disabled,
   onRefresh,
   startSetup,
+  icon,
+  iconBackgroundColor,
 }: {
   title: string;
   description: string;
@@ -35,6 +39,8 @@ export function RepositorySetupForm({
   disabled?: boolean;
   onRefresh?: () => Promise<void> | void;
   startSetup: (input: { organizationId: string; repositoryName: string }) => Promise<{ outcome: RepositorySetupOutcome }>;
+  icon?: LucideIcon;
+  iconBackgroundColor?: string;
 }) {
   const t = useTranslations('NpmSetup');
   const router = useRouter();
@@ -79,28 +85,18 @@ export function RepositorySetupForm({
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>{title}</CardTitle>
-        <CardDescription>{description}</CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
+    <SettingsItemContainer title={title} description={description} icon={icon ?? Package} iconBackgroundColor={iconBackgroundColor}>
+      <div className="space-y-4">
         <div className="space-y-2">
           <Label htmlFor={nameFieldId}>{nameLabel}</Label>
           <Input id={nameFieldId} value={name} disabled={disabled} onChange={(event) => setName(event.target.value)} />
           {plan && <p className="text-sm text-muted-foreground">{planText(plan)}</p>}
         </div>
         <Button onClick={start} disabled={disabled || busy || plan?.plan === 'blocked' || !name}>
-          {busy && <Spinner />}
-          {busy
-            ? plan?.plan === 'overwrite'
-              ? t('startingOverwrite')
-              : t('starting')
-            : plan?.plan === 'overwrite'
-              ? t('startOverwrite')
-              : t('start')}
+          {busy ? <Spinner /> : plan?.plan === 'overwrite' ? <RefreshCw /> : <Plus />}
+          {plan?.plan === 'overwrite' ? t('overwriteShort') : t('createShort')}
         </Button>
-      </CardContent>
-    </Card>
+      </div>
+    </SettingsItemContainer>
   );
 }

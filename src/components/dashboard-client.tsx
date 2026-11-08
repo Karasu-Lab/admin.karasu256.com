@@ -4,9 +4,11 @@ import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { Badge, Button, Card, CardContent, CardHeader, CardTitle, Spinner, toast } from '@karasu-lab/ui';
+import { ArrowRight, Check, Settings } from 'lucide-react';
 import { getDashboardDataAction, markSetupCompletedAction, type DashboardData, type LiveFeedData } from '@/app/actions';
 import { LiveFeed } from './live-feed';
 import { RepositoryImport } from './repository-import';
+import { useReportLoading } from './settings/loading-context';
 
 interface Step {
   done: boolean;
@@ -44,12 +46,12 @@ export function DashboardClient({
   }, [load]);
 
   const loading = !data;
+  useReportLoading('dashboard', loading);
 
   if (data && !data.signedIn) {
     return (
       <main className="flex-1 p-6">
-        <h1 className="text-2xl font-bold">{t('title')}</h1>
-        <p className="mt-4 text-muted-foreground">{t('signInRequired')}</p>
+        <p className="text-muted-foreground">{t('signInRequired')}</p>
       </main>
     );
   }
@@ -108,7 +110,7 @@ export function DashboardClient({
       title: tOnboarding('package'),
       description: tOnboarding('packageDescription'),
       href: selected ? `/packages?tenant=${selected.id}` : undefined,
-      hrefLabel: tOnboarding('openPackages'),
+      hrefLabel: tOnboarding('openPackagesShort'),
     },
   ];
   const allStepsDone = steps.every((step) => step.done);
@@ -128,7 +130,6 @@ export function DashboardClient({
 
   return (
     <main className="flex-1 space-y-6 p-6">
-      <h1 className="text-2xl font-bold">{t('title')}</h1>
       {!loading && tenants.length === 0 && <p className="text-muted-foreground">{t('noTenants')}</p>}
       {!loading && tenants.length > 1 && (
         <div className="flex flex-wrap gap-2">
@@ -153,7 +154,8 @@ export function DashboardClient({
               </CardTitle>
               {!loading && settingsHref && (
                 <Button variant="outline" className="ml-auto" render={<Link href={settingsHref} />}>
-                  {tOnboarding('openSettings')}
+                  <Settings />
+                  {tOnboarding('settingsShort')}
                 </Button>
               )}
             </div>
@@ -172,13 +174,14 @@ export function DashboardClient({
                 </div>
                 {!loading && !step.done && step.href && (
                   <Button variant="outline" className="ml-auto" render={<Link href={step.href} />}>
+                    <ArrowRight />
                     {step.hrefLabel}
                   </Button>
                 )}
                 {!loading && index === steps.length - 1 && (
                   <Button className={!step.done && step.href ? undefined : 'ml-auto'} disabled={!allStepsDone || marking} onClick={markCompleted}>
-                    {marking && <Spinner />}
-                    {marking ? tOnboarding('markingCompleted') : tOnboarding('markCompleted')}
+                    {marking ? <Spinner /> : <Check />}
+                    {tOnboarding('markCompletedShort')}
                   </Button>
                 )}
               </div>

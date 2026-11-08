@@ -5,6 +5,7 @@ import { PopUpMenuProvider, SessionProvider, Toaster, TooltipProvider } from '@k
 import { geistSans, geistMono, notoSansJP } from '@karasu-lab/ui/fonts';
 import { getSessionUser } from '@karasu-lab/utils/server';
 import { Header } from '@/components/header';
+import { LoadingProvider } from '@/components/settings/loading-context';
 import { getClientConfig } from '@/lib/client-config';
 import { GithubCorner } from '@/components/github-corner';
 import { NavSidebar } from '@/components/nav-sidebar';
@@ -38,12 +39,14 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           <SessionProvider baseURL={clientConfig.authApiUrl} initialUser={initialUser}>
             <PopUpMenuProvider>
               <TooltipProvider>
-                <Header />
-                <div className="flex w-full flex-1 flex-col md:flex-row">
-                  <NavSidebar />
-                  <main className="min-w-0 flex-1">{children}</main>
-                </div>
-                <GithubCorner />
+                <LoadingProvider>
+                  <Header />
+                  <div className="flex w-full flex-1 flex-col md:flex-row">
+                    <NavSidebar />
+                    <main className="min-w-0 flex-1">{children}</main>
+                  </div>
+                  <GithubCorner />
+                </LoadingProvider>
               </TooltipProvider>
             </PopUpMenuProvider>
             <Toaster />

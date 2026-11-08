@@ -2,8 +2,10 @@
 
 import { useState } from 'react';
 import { useTranslations } from 'next-intl';
-import { Button, Card, CardContent, CardDescription, CardHeader, CardTitle, Spinner, toast } from '@karasu-lab/ui';
+import { Button, Spinner, toast } from '@karasu-lab/ui';
+import { KeyRound, ShieldCheck } from 'lucide-react';
 import { startProviderLink } from '@/lib/provider-link';
+import { SettingsItemContainer } from './settings/settings-item-container';
 
 export function SigningKeyAuthorizationSection({
   authApiUrl,
@@ -28,17 +30,16 @@ export function SigningKeyAuthorizationSection({
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>{t('authorizationTitle')}</CardTitle>
-        <CardDescription>{t('authorizationDescription')}</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <Button variant="outline" disabled={disabled || authorizing} onClick={authorize}>
-          {authorizing && <Spinner />}
-          {t('authorize')}
-        </Button>
-      </CardContent>
-    </Card>
+    <SettingsItemContainer
+      title={t('authorizationTitle')}
+      description={t('authorizationDescription')}
+      icon={ShieldCheck}
+      iconBackgroundColor="#5856d6"
+    >
+      <Button variant="outline" disabled={disabled || authorizing} onClick={authorize}>
+        {authorizing ? <Spinner /> : <KeyRound />}
+        {t('authorizeShort')}
+      </Button>
+    </SettingsItemContainer>
   );
 }

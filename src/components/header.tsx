@@ -1,10 +1,10 @@
-import Link from 'next/link';
 import { getLocale, getTranslations } from 'next-intl/server';
 import { Header as UiHeader, type CountryCode } from '@karasu-lab/ui';
 import { getSessionUser, getSignInUrl, signOutAction, setLocaleAction } from '@karasu-lab/utils/server';
 import { listUserTenants } from '@/lib/api-auth';
 import { getClientConfig } from '@/lib/client-config';
 import type { TenantSummary } from '@/lib/tenants';
+import { HeaderTitle } from './header-title';
 import { TenantAccountMenu } from './tenant-account-menu';
 
 const localeLabels: Record<'en' | 'ja', { label: string; countryCode: CountryCode }> = {
@@ -29,11 +29,7 @@ export async function Header() {
 
   return (
     <UiHeader
-      logo={
-        <Link href="/" className="hover:text-gray-600 transition-colors">
-          Karasu Lab Admin
-        </Link>
-      }
+      logo={<HeaderTitle />}
       locales={localeLabels}
       currentLocale={currentLocale}
       onLocaleChange={setLocaleAction}
