@@ -1,0 +1,9 @@
+{
+  "files": [
+    { "source": "workflows/sync-pointer.yml", "path": ".github/workflows/sync-pointer.yml" },
+    { "source": "scripts/sync-pointer.mjs", "path": "scripts/sync-pointer.mjs" },
+    { "source": "workflows/publish.yml", "path": ".github/workflows/publish.yml" },
+    { "source": "scripts/publish.mjs", "path": "scripts/publish.mjs" },
+    { "source": "publish-progress-comments.json", "path": ".github/publish-progress-comments.json" }
+  ]
+}

@@ -8,11 +8,11 @@ declare global {
       AUTH_URL: string;
       AUTH_API_URL: string;
       APP_URL: string;
-      API_URL: string;
       GIT_API_URL: string;
       ROOT_APP_URL: string;
       INTERNAL_API_SECRET?: string;
-      GITHUB_APP_WEBHOOK_SECRET?: string;
+      GH_APP_WEBHOOK_SECRET?: string;
+      BETTER_AUTH_SECRET?: string;
     }
   }
 }

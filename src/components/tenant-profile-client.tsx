@@ -4,7 +4,8 @@ import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { Button, Card, CardContent, Input, Label, Spinner, toast } from '@karasu-lab/ui';
-import { getTenantProfileAction, type TenantProfileData } from '@/app/actions';
+import { getTenantProfileAction } from '@/app/actions/dashboard';
+import type { TenantProfileData } from '@/lib/dashboard-data';
 import { useReportLoading } from './settings/loading-context';
 
 export function TenantProfileClient({ tenantId, authApiUrl }: { tenantId: string; authApiUrl: string }) {

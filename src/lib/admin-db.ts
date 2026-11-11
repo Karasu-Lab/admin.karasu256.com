@@ -1,7 +1,12 @@
 import 'server-only';
 import { getCloudflareContext } from '@opennextjs/cloudflare';
+import { eq, lt } from 'drizzle-orm';
+import { drizzle, type DrizzleD1Database } from 'drizzle-orm/d1';
+import * as schema from '@/db/schema';
 
-export async function getAdminDb(): Promise<D1Database> {
+export type AdminDb = DrizzleD1Database<typeof schema>;
+
+export async function getDb(): Promise<AdminDb> {
   let env: CloudflareEnv;
   try {
     env = (await getCloudflareContext({ async: true })).env;
@@ -13,22 +18,21 @@ export async function getAdminDb(): Promise<D1Database> {
   if (!env.ADMIN_DB) {
     throw new Error('The ADMIN_DB D1 binding is not configured for this worker');
   }
-  return env.ADMIN_DB;
+  return drizzle(env.ADMIN_DB, { schema });
 }
 
-export async function queryAdminDb<T>(sql: string, params: unknown[] = []): Promise<T[]> {
-  const db = await getAdminDb();
-  const result = await db.prepare(sql).bind(...params).all<T>();
-  if (!result.success) {
-    throw new Error(`D1 query failed: ${result.error ?? 'unknown error'} (SQL: ${sql})`);
-  }
-  return result.results;
+export async function claimDedupeKey(key: string, retentionMs: number, now: Date = new Date()): Promise<boolean> {
+  const db = await getDb();
+  await db.delete(schema.dedupeKeys).where(lt(schema.dedupeKeys.receivedAt, new Date(now.getTime() - retentionMs).toISOString()));
+  const inserted = await db
+    .insert(schema.dedupeKeys)
+    .values({ key, receivedAt: now.toISOString() })
+    .onConflictDoNothing()
+    .returning({ key: schema.dedupeKeys.key });
+  return inserted.length > 0;
 }
 
-export async function runAdminDb(sql: string, params: unknown[] = []): Promise<void> {
-  const db = await getAdminDb();
-  const result = await db.prepare(sql).bind(...params).run();
-  if (!result.success) {
-    throw new Error(`D1 query failed: ${result.error ?? 'unknown error'} (SQL: ${sql})`);
-  }
+export async function releaseDedupeKey(key: string): Promise<void> {
+  const db = await getDb();
+  await db.delete(schema.dedupeKeys).where(eq(schema.dedupeKeys.key, key));
 }

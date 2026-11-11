@@ -15,7 +15,9 @@ import {
   toast,
 } from '@karasu-lab/ui';
 import { ArrowRight, Bot, Package, Plus, Trash2 } from 'lucide-react';
-import { getGithubAppInstallUrlAction, getTenantSettingsDataAction, uninstallBotAction, type TenantSettingsData } from '@/app/actions';
+import { getTenantSettingsDataAction } from '@/app/actions/dashboard';
+import { getGithubAppInstallUrlAction, uninstallBotAction } from '@/app/actions/tenant';
+import type { TenantSettingsData } from '@/lib/dashboard-data';
 import { requestProviderLinkUrl } from '@/lib/provider-link';
 import { DeleteTenantSection } from './delete-tenant-section';
 import { SettingsItemContainer } from './settings/settings-item-container';

@@ -15,7 +15,9 @@ import {
   toast,
 } from '@karasu-lab/ui';
 import { Copy, Plus, RefreshCw, Webhook } from 'lucide-react';
-import { getPackagesDataAction, rotateWebhookSecretAction, type PackagesData } from '@/app/actions';
+import { getPackagesDataAction } from '@/app/actions/dashboard';
+import { rotateWebhookSecretAction } from '@/app/actions/tenant';
+import type { PackagesData } from '@/lib/dashboard-data';
 import { LinkedPackagesSection } from './linked-packages-section';
 import { useReportLoading } from './settings/loading-context';
 import { SettingsItemContainer } from './settings/settings-item-container';

@@ -1,0 +1,24 @@
+name: JS Workflows
+description: Run the shared Prettier formatting, type check and build tasks for a JavaScript or TypeScript package.
+
+branding:
+    icon: check-circle
+    color: gray-dark
+
+inputs:
+    task:
+        description: The task to run (format, typecheck or build).
+        required: true
+
+runs:
+    using: composite
+    steps:
+        - uses: actions/setup-node@v4
+          with:
+              node-version: lts/*
+              registry-url: https://npm.pkg.github.com
+              scope: "@karasu-lab"
+        - run: bash "$GITHUB_ACTION_PATH/scripts/run.sh" "$TASK"
+          shell: bash
+          env:
+              TASK: ${{ inputs.task }}

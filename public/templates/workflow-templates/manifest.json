@@ -1,0 +1,12 @@
+{
+  "files": [
+    { "source": "workflows/ci.yml", "path": ".github/workflows/ci.yml" },
+    { "source": "action.yml", "path": "action.yml" },
+    { "source": "scripts/run.sh", "path": "scripts/run.sh" },
+    { "source": "scripts/resolve-workspace.mjs", "path": "scripts/resolve-workspace.mjs" },
+    { "source": "prettierrc.json", "path": ".prettierrc.json" },
+    { "source": "eslint.config.mjs", "path": "eslint.config.mjs" },
+    { "source": "package.json", "path": "package.json" },
+    { "source": "gitignore", "path": ".gitignore" }
+  ]
+}

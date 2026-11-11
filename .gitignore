@@ -1,6 +1,3 @@
-# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
-
-# dependencies
 /node_modules
 /.pnp
 .pnp.*
@@ -10,37 +7,31 @@
 !.yarn/releases
 !.yarn/versions
 
-# testing
 /coverage
 
-# next.js
 /.next/
 /out/
+/.open-next/
+/.wrangler/
 
-# production
 /build
 
-# misc
 .DS_Store
 *.pem
 
-# debug
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# env files — everything ignored except the example template
 .env*
 !.env.example
+.dev.vars*
 
-# vercel
 .vercel
 
-# typescript
 *.tsbuildinfo
 next-env.d.ts
 package-lock.json
 
-# turborepo
 .turbo/

@@ -21,7 +21,7 @@ import {
   toast,
 } from '@karasu-lab/ui';
 import { MoreHorizontal, Package, Unlink } from 'lucide-react';
-import { setPackageEnabledAction, unlinkPackageAction } from '@/app/actions';
+import { setPackageEnabledAction, unlinkPackageAction } from '@/app/actions/packages';
 import type { TenantLinkedPackage } from '@/lib/tenants';
 import { SettingsItemContainer, SettingsItemGroup } from './settings/settings-item-container';
 

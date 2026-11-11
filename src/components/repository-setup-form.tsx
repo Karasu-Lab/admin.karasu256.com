@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { Button, Input, Label, Spinner, toast } from '@karasu-lab/ui';
 import { Package, Plus, RefreshCw, type LucideIcon } from 'lucide-react';
-import type { RepositorySetupOutcome } from '@/app/actions';
+import type { RepositorySetupOutcome } from '@/lib/repository-setup';
 import type { InstallationRepository } from '@/lib/tenants';
 import { SettingsItemContainer } from './settings/settings-item-container';
 

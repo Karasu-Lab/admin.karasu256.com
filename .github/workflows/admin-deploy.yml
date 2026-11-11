@@ -5,20 +5,6 @@ on:
     branches: ["**"]
   workflow_dispatch:
 
-# Deployment itself lives in Karasu-Lab/WorkersDeploy: it deploys this
-# app standalone from this repository, detects the Next.js project,
-# builds it with OpenNext, and deploys it to Cloudflare Workers.
-#
-# Before any deploy, the d1 job sets up the Cloudflare D1 database
-# this app binds as ADMIN_DB: it creates the database named `admin`
-# with the repository's D1 API token when it is missing, writes the
-# binding (with the real database_id) into wrangler.jsonc, applies
-# the migrations under migrations/ and commits the binding back to
-# the branch. A push made by the workflow token does not start a new
-# run on its own, so when the binding is committed the job dispatches
-# a fresh run for the pushed commit and this run skips the deploy;
-# that run then deploys with the binding in place.
-
 jobs:
   d1:
     runs-on: ubuntu-latest
@@ -29,52 +15,59 @@ jobs:
       binding_pushed: ${{ steps.binding.outputs.binding_pushed }}
     env:
       CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
-      CLOUDFLARE_API_TOKEN: ${{ secrets.CLPUDFLARE_D1_API_TOKEN }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_D1_API_TOKEN }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
           node-version: 24
-      - id: database
+      - id: databases
         run: |
-          list=$(curl -sS -G "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/d1/database" \
-            -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
-            --data-urlencode "name=admin" --data-urlencode "per_page=50")
-          if [ "$(echo "$list" | jq -r '.success')" != "true" ]; then
-            echo "$list" | jq .
-            echo "::error::Listing the D1 databases failed"
-            exit 1
-          fi
-          database_id=$(echo "$list" | jq -r '[.result[] | select(.name == "admin")][0].uuid // empty')
-          if [ -z "$database_id" ]; then
-            created=$(curl -sS -X POST "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/d1/database" \
+          resolve() {
+            name="$1"
+            list=$(curl -sS -G "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/d1/database" \
               -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
-              -H "Content-Type: application/json" \
-              --data '{"name":"admin"}')
-            if [ "$(echo "$created" | jq -r '.success')" != "true" ]; then
-              echo "$created" | jq .
-              echo "::error::Creating the admin D1 database failed"
+              --data-urlencode "name=$name" --data-urlencode "per_page=50")
+            if [ "$(echo "$list" | jq -r '.success')" != "true" ]; then
+              echo "$list" | jq . >&2
+              echo "::error::Listing the D1 databases failed" >&2
               exit 1
             fi
-            database_id=$(echo "$created" | jq -r '.result.uuid // empty')
-            echo "Created the admin D1 database."
-          fi
-          if [ -z "$database_id" ]; then
-            echo "::error::Could not resolve the admin D1 database id"
-            exit 1
-          fi
-          echo "database_id=$database_id" >> "$GITHUB_OUTPUT"
-          echo "Admin D1 database id: $database_id"
+            database_id=$(echo "$list" | jq -r --arg name "$name" '[.result[] | select(.name == $name)][0].uuid // empty')
+            if [ -z "$database_id" ]; then
+              created=$(curl -sS -X POST "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/d1/database" \
+                -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
+                -H "Content-Type: application/json" \
+                --data "$(jq -n --arg name "$name" '{name: $name}')")
+              if [ "$(echo "$created" | jq -r '.success')" != "true" ]; then
+                echo "$created" | jq . >&2
+                echo "::error::Creating the $name D1 database failed" >&2
+                exit 1
+              fi
+              database_id=$(echo "$created" | jq -r '.result.uuid // empty')
+              echo "Created the $name D1 database." >&2
+            fi
+            if [ -z "$database_id" ]; then
+              echo "::error::Could not resolve the $name D1 database id" >&2
+              exit 1
+            fi
+            echo "$database_id"
+          }
+          production_id="$(resolve admin)"
+          preview_id="$(resolve admin-preview)"
+          echo "production_id=$production_id" >> "$GITHUB_OUTPUT"
+          echo "preview_id=$preview_id" >> "$GITHUB_OUTPUT"
       - env:
-          DATABASE_ID: ${{ steps.database.outputs.database_id }}
+          PRODUCTION_DATABASE_ID: ${{ steps.databases.outputs.production_id }}
+          PREVIEW_DATABASE_ID: ${{ steps.databases.outputs.preview_id }}
         run: |
           node <<'EOF'
           const { readFileSync, writeFileSync } = require('node:fs');
-          const binding = [
+          const binding = (databaseId, databaseName) => [
             {
               binding: 'ADMIN_DB',
-              database_id: process.env.DATABASE_ID,
-              database_name: 'admin',
+              database_id: databaseId,
+              database_name: databaseName,
               migrations_dir: 'migrations',
             },
           ];
@@ -90,28 +83,33 @@ jobs:
             return value;
           };
           const config = JSON.parse(readFileSync('wrangler.jsonc', 'utf8'));
-          config.d1_databases = binding;
-          config.env.preview.d1_databases = binding;
-          config.previews.d1_databases = binding;
+          const production = binding(process.env.PRODUCTION_DATABASE_ID, 'admin');
+          const preview = binding(process.env.PREVIEW_DATABASE_ID, 'admin-preview');
+          config.d1_databases = production;
+          config.env.preview.d1_databases = preview;
+          config.previews.d1_databases = preview;
           writeFileSync('wrangler.jsonc', `${JSON.stringify(sortKeys(config))}\n`);
           EOF
-      - run: npx -y wrangler@4.155.0 d1 migrations apply ADMIN_DB --remote
+      - if: github.ref_name == 'main'
+        run: npx -y wrangler@4.155.0 d1 migrations apply ADMIN_DB --remote
+      - if: github.ref_name != 'main'
+        run: npx -y wrangler@4.155.0 d1 migrations apply ADMIN_DB --remote --env preview
       - id: binding
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           if git diff --quiet -- wrangler.jsonc; then
             echo "binding_pushed=false" >> "$GITHUB_OUTPUT"
-            echo "wrangler.jsonc already carries the ADMIN_DB binding for this database; deploying in this run."
+            echo "wrangler.jsonc already carries the ADMIN_DB bindings; deploying in this run."
           else
             git config user.name "github-actions[bot]"
             git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
             git add wrangler.jsonc
-            git commit -m "chore: add the admin D1 database binding"
+            git commit -m "chore: update the admin D1 database bindings"
             git push origin "HEAD:$GITHUB_REF_NAME"
             gh workflow run admin-deploy.yml --ref "$GITHUB_REF_NAME"
             echo "binding_pushed=true" >> "$GITHUB_OUTPUT"
-            echo "Committed the ADMIN_DB binding and dispatched a run for the pushed commit; this run skips the deploy."
+            echo "Committed the ADMIN_DB bindings and dispatched a run for the pushed commit; this run skips the deploy."
           fi
 
   deploy:
@@ -126,13 +124,12 @@ jobs:
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
       NODE_AUTH_TOKEN: ${{ secrets.NODE_AUTH_TOKEN || secrets.GITHUB_TOKEN }}
-      API_URL: ${{ vars.API_URL }}
       INTERNAL_API_SECRET: ${{ secrets.INTERNAL_API_SECRET }}
       BETTER_AUTH_SECRET: ${{ secrets.BETTER_AUTH_SECRET }}
       GH_APP_WEBHOOK_SECRET: ${{ secrets.GH_APP_WEBHOOK_SECRET }}
     steps:
       - name: Deploy the worker
-        uses: Karasu-Lab/WorkersDeploy@v1
+        uses: Karasu-Lab/WorkersDeploy@815f0a552fe911085a3e683060f36bf9febbad5c
         with:
           mode: production
           worker-name: admin-karasu256-com
@@ -141,12 +138,16 @@ jobs:
     needs: deploy
     environment: production
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     env:
       INTERNAL_API_SECRET: ${{ secrets.INTERNAL_API_SECRET }}
       GH_APP_WEBHOOK_SECRET: ${{ secrets.GH_APP_WEBHOOK_SECRET }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
           node-version: 24
       - run: node scripts/register-webhook.mjs
@@ -163,13 +164,12 @@ jobs:
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
       NODE_AUTH_TOKEN: ${{ secrets.NODE_AUTH_TOKEN || secrets.GITHUB_TOKEN }}
-      API_URL: ${{ vars.API_URL }}
       INTERNAL_API_SECRET: ${{ secrets.INTERNAL_API_SECRET }}
       BETTER_AUTH_SECRET: ${{ secrets.BETTER_AUTH_SECRET }}
       GH_APP_WEBHOOK_SECRET: ${{ secrets.GH_APP_WEBHOOK_SECRET }}
     steps:
       - name: Deploy the worker
-        uses: Karasu-Lab/WorkersDeploy@v1
+        uses: Karasu-Lab/WorkersDeploy@815f0a552fe911085a3e683060f36bf9febbad5c
         with:
           mode: preview
           worker-name: admin-karasu256-com
