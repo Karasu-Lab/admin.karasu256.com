@@ -26,7 +26,7 @@ import {
   Spinner,
   toast,
 } from '@karasu-lab/ui';
-import { linkPackageAction } from '@/app/actions';
+import { linkPackageAction } from '@/app/actions/packages';
 import type { InstallationRepository } from '@/lib/tenants';
 
 const PAGE_SIZE = 10;
@@ -82,13 +82,7 @@ export function RepositoryImport({
     if (!organizationId) return;
     setBusyId(repository.id);
     try {
-      const result = await linkPackageAction({
-        organizationId,
-        repositoryId: repository.id,
-        repositoryFullName: repository.fullName,
-        defaultBranch: repository.defaultBranch,
-        private: repository.private,
-      });
+      const result = await linkPackageAction({ organizationId, repositoryId: repository.id });
       setJustLinkedFullNames(result.linkedPackages.map((linked) => linked.repositoryFullName));
       await refresh();
     } catch (caught) {

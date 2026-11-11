@@ -1,9 +1,9 @@
-import { getSessionUser } from '@karasu-lab/utils/server';
+import { log } from '@karasu-lab/utils/server';
 import { DashboardClient } from '@/components/dashboard-client';
 import { listUserTenants } from '@/lib/api-auth';
-import { getClientConfig } from '@/lib/client-config';
 import { getTenantSetupCompleted } from '@/lib/setup-completion';
-import { getLiveFeed, type LiveFeedData } from '@/lib/update-events';
+import { TenantAccess } from '@/lib/tenant-access';
+import { PackageUpdateEvents, type LiveFeedData } from '@/lib/update-events';
 
 export default async function Home({
   searchParams,
@@ -14,17 +14,17 @@ export default async function Home({
   let initialSetupCompleted = false;
   let initialFeed: LiveFeedData | null = null;
   try {
-    const user = await getSessionUser(getClientConfig().authApiUrl);
-    if (user) {
-      const tenants = await listUserTenants(user.uid);
+    const userId = await new TenantAccess().optionalUserId();
+    if (userId) {
+      const tenants = await listUserTenants(userId);
       const selected = tenants.find((tenant) => tenant.id === params.tenant) ?? tenants[0] ?? null;
       if (selected) {
         initialSetupCompleted = await getTenantSetupCompleted(selected.id);
-        initialFeed = await getLiveFeed(selected.id);
+        initialFeed = await new PackageUpdateEvents().liveFeed(selected.id);
       }
     }
   } catch (error) {
-    console.error(error instanceof Error ? new Error(`failed to load the dashboard initial state: ${error.message}`) : error);
+    log('dashboard_initial_state_failed', { message: error instanceof Error ? error.message : String(error) }, 'error');
   }
   return <DashboardClient tenantId={params.tenant} initialSetupCompleted={initialSetupCompleted} initialFeed={initialFeed} />;
 }

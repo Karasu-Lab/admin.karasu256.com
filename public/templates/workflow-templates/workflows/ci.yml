@@ -1,0 +1,44 @@
+name: CI
+
+on:
+    workflow_call:
+
+permissions:
+    contents: write
+
+jobs:
+    format:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+              with:
+                  ref: ${{ github.head_ref || github.ref_name }}
+            - uses: %%TEMPLATE_REPOSITORY%%@main
+              with:
+                  task: format
+
+    typecheck:
+        needs: format
+        runs-on: ubuntu-latest
+        env:
+            NODE_AUTH_TOKEN: ${{ secrets.NODE_AUTH_TOKEN }}
+        steps:
+            - uses: actions/checkout@v4
+              with:
+                  ref: ${{ github.head_ref || github.ref_name }}
+            - uses: %%TEMPLATE_REPOSITORY%%@main
+              with:
+                  task: typecheck
+
+    build:
+        needs: typecheck
+        runs-on: ubuntu-latest
+        env:
+            NODE_AUTH_TOKEN: ${{ secrets.NODE_AUTH_TOKEN }}
+        steps:
+            - uses: actions/checkout@v4
+              with:
+                  ref: ${{ github.head_ref || github.ref_name }}
+            - uses: %%TEMPLATE_REPOSITORY%%@main
+              with:
+                  task: build

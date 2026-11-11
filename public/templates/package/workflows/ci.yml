@@ -1,0 +1,11 @@
+name: CI
+
+on:
+    pull_request:
+
+jobs:
+    ci:
+        uses: %%TEMPLATE_REPOSITORY%%/.github/workflows/ci.yml@main
+        permissions:
+            contents: write
+        secrets: inherit

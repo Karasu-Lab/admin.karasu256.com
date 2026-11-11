@@ -1,103 +1,178 @@
 import 'server-only';
-import { queryAdminDb, runAdminDb } from './admin-db';
+import { and, desc, eq, ne, notInArray } from 'drizzle-orm';
+import { z } from 'zod';
+import { packageUpdateEvents } from '@/db/schema';
+import { getDb } from './admin-db';
 
-export type PackageUpdateStatus = 'processing' | 'completed' | 'failed';
-
-export interface PackageUpdateEvent {
-  id: string;
-  organizationId: string;
-  packageId: string;
-  repositoryFullName: string;
-  status: PackageUpdateStatus;
-  fromSha: string | null;
-  toSha: string;
-  reason: string | null;
-  startedAt: string;
-  finishedAt: string | null;
+export function packageUpdateStatusSchema() {
+  return z.enum(['processing', 'completed', 'failed']);
 }
 
-export interface LiveFeedData {
-  processing: PackageUpdateEvent[];
-  recent: PackageUpdateEvent[];
+export type PackageUpdateStatus = z.infer<ReturnType<typeof packageUpdateStatusSchema>>;
+
+export function packageUpdateEventSchema() {
+  return z.object({
+    id: z.string(),
+    organizationId: z.string(),
+    packageId: z.string(),
+    repositoryFullName: z.string(),
+    status: packageUpdateStatusSchema(),
+    fromSha: z.string().nullable(),
+    toSha: z.string(),
+    reason: z.string().nullable(),
+    startedAt: z.string(),
+    finishedAt: z.string().nullable(),
+  });
 }
 
-interface PackageUpdateEventRow {
-  id: string;
-  organization_id: string;
-  package_id: string;
-  repository_full_name: string;
-  status: string;
-  from_sha: string | null;
-  to_sha: string;
-  reason: string | null;
-  started_at: string;
-  finished_at: string | null;
+export type PackageUpdateEvent = z.infer<ReturnType<typeof packageUpdateEventSchema>>;
+
+export function liveFeedDataSchema() {
+  return z.object({
+    processing: z.array(packageUpdateEventSchema()),
+    recent: z.array(packageUpdateEventSchema()),
+  });
 }
 
-function toPackageUpdateEvent(row: PackageUpdateEventRow): PackageUpdateEvent {
-  return {
-    id: row.id,
-    organizationId: row.organization_id,
-    packageId: row.package_id,
-    repositoryFullName: row.repository_full_name,
-    status: row.status === 'completed' || row.status === 'failed' ? row.status : 'processing',
-    fromSha: row.from_sha,
-    toSha: row.to_sha,
-    reason: row.reason,
-    startedAt: row.started_at,
-    finishedAt: row.finished_at,
-  };
+export type LiveFeedData = z.infer<ReturnType<typeof liveFeedDataSchema>>;
+
+export function packageUpdateContextSchema() {
+  return z.object({
+    sourcePullRequestNumber: z.number().nullable(),
+    sourceHeadSha: z.string().nullable(),
+    pointerCommentId: z.number().nullable(),
+  });
 }
 
-export async function startPackageUpdate(input: {
-  organizationId: string;
-  packageId: string;
-  repositoryFullName: string;
-  fromSha: string | null;
-  toSha: string;
-}): Promise<string> {
-  const id = crypto.randomUUID();
-  await runAdminDb(
-    'INSERT INTO package_update_events (id, organization_id, package_id, repository_full_name, status, from_sha, to_sha, reason, started_at, finished_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-    [id, input.organizationId, input.packageId, input.repositoryFullName, 'processing', input.fromSha, input.toSha, null, new Date().toISOString(), null]
-  );
-  return id;
+export type PackageUpdateContext = z.infer<ReturnType<typeof packageUpdateContextSchema>>;
+
+export function packageUpdateRecordSchema() {
+  return packageUpdateEventSchema().extend(packageUpdateContextSchema().shape);
 }
 
-export async function finishPackageUpdate(
-  id: string,
-  organizationId: string,
-  status: Exclude<PackageUpdateStatus, 'processing'>,
-  reason?: string
-): Promise<void> {
-  await runAdminDb('UPDATE package_update_events SET status = ?, reason = ?, finished_at = ? WHERE id = ?', [
-    status,
-    reason ?? null,
-    new Date().toISOString(),
-    id,
-  ]);
-  await runAdminDb(
-    `DELETE FROM package_update_events
-     WHERE organization_id = ? AND status != 'processing' AND id NOT IN (
-       SELECT id FROM package_update_events WHERE organization_id = ? AND status != 'processing' ORDER BY finished_at DESC LIMIT 50
-     )`,
-    [organizationId, organizationId]
-  );
+export type PackageUpdateRecord = z.infer<ReturnType<typeof packageUpdateRecordSchema>>;
+
+export function startPackageUpdateInputSchema() {
+  return z.object({
+    organizationId: z.string(),
+    packageId: z.string(),
+    repositoryFullName: z.string(),
+    fromSha: z.string().nullable(),
+    toSha: z.string(),
+  });
 }
 
-export async function getLiveFeed(organizationId: string): Promise<LiveFeedData> {
-  const processingRows = await queryAdminDb<PackageUpdateEventRow>(
-    `SELECT id, organization_id, package_id, repository_full_name, status, from_sha, to_sha, reason, started_at, finished_at
-     FROM package_update_events WHERE organization_id = ? AND status = 'processing' ORDER BY started_at DESC`,
-    [organizationId]
-  );
-  const recentRows = await queryAdminDb<PackageUpdateEventRow>(
-    `SELECT id, organization_id, package_id, repository_full_name, status, from_sha, to_sha, reason, started_at, finished_at
-     FROM package_update_events WHERE organization_id = ? AND status != 'processing' ORDER BY finished_at DESC LIMIT 10`,
-    [organizationId]
-  );
-  return {
-    processing: processingRows.map(toPackageUpdateEvent),
-    recent: recentRows.map(toPackageUpdateEvent),
-  };
+export type StartPackageUpdateInput = z.infer<ReturnType<typeof startPackageUpdateInputSchema>>;
+
+type PackageUpdateRow = typeof packageUpdateEvents.$inferSelect;
+
+export class PackageUpdateEvents {
+  retainedFinishedEvents = 50;
+  recentEventsLimit = 10;
+  statuses = packageUpdateStatusSchema().enum;
+
+  private toEvent(row: PackageUpdateRow): PackageUpdateEvent {
+    const status = packageUpdateStatusSchema().safeParse(row.status);
+    return {
+      id: row.id,
+      organizationId: row.organizationId,
+      packageId: row.packageId,
+      repositoryFullName: row.repositoryFullName,
+      status: status.success ? status.data : this.statuses.processing,
+      fromSha: row.fromSha,
+      toSha: row.toSha,
+      reason: row.reason,
+      startedAt: row.startedAt,
+      finishedAt: row.finishedAt,
+    };
+  }
+
+  async start(input: StartPackageUpdateInput): Promise<string> {
+    const id = crypto.randomUUID();
+    const db = await getDb();
+    await db.insert(packageUpdateEvents).values({
+      id,
+      ...startPackageUpdateInputSchema().parse(input),
+      status: this.statuses.processing,
+      startedAt: new Date().toISOString(),
+    });
+    return id;
+  }
+
+  async setContext(id: string, organizationId: string, context: PackageUpdateContext): Promise<void> {
+    const db = await getDb();
+    await db
+      .update(packageUpdateEvents)
+      .set(packageUpdateContextSchema().parse(context))
+      .where(and(eq(packageUpdateEvents.id, id), eq(packageUpdateEvents.organizationId, organizationId)));
+  }
+
+  async get(id: string, organizationId: string): Promise<PackageUpdateRecord | null> {
+    const db = await getDb();
+    const rows = await db
+      .select()
+      .from(packageUpdateEvents)
+      .where(and(eq(packageUpdateEvents.id, id), eq(packageUpdateEvents.organizationId, organizationId)))
+      .limit(1);
+    const row = rows[0];
+    if (!row) return null;
+    return {
+      ...this.toEvent(row),
+      sourcePullRequestNumber: row.sourcePullRequestNumber,
+      sourceHeadSha: row.sourceHeadSha,
+      pointerCommentId: row.pointerCommentId,
+    };
+  }
+
+  async finish(
+    id: string,
+    organizationId: string,
+    status: Exclude<PackageUpdateStatus, 'processing'>,
+    reason?: string
+  ): Promise<void> {
+    const db = await getDb();
+    await db
+      .update(packageUpdateEvents)
+      .set({ status, reason: reason ?? null, finishedAt: new Date().toISOString() })
+      .where(and(eq(packageUpdateEvents.id, id), eq(packageUpdateEvents.organizationId, organizationId)));
+    const finishedInOrganization = and(
+      eq(packageUpdateEvents.organizationId, organizationId),
+      ne(packageUpdateEvents.status, this.statuses.processing)
+    );
+    const kept = await db
+      .select({ id: packageUpdateEvents.id })
+      .from(packageUpdateEvents)
+      .where(finishedInOrganization)
+      .orderBy(desc(packageUpdateEvents.finishedAt))
+      .limit(this.retainedFinishedEvents);
+    if (kept.length === 0) return;
+    await db.delete(packageUpdateEvents).where(
+      and(
+        finishedInOrganization,
+        notInArray(
+          packageUpdateEvents.id,
+          kept.map((row) => row.id)
+        )
+      )
+    );
+  }
+
+  async liveFeed(organizationId: string): Promise<LiveFeedData> {
+    const db = await getDb();
+    const processingRows = await db
+      .select()
+      .from(packageUpdateEvents)
+      .where(and(eq(packageUpdateEvents.organizationId, organizationId), eq(packageUpdateEvents.status, this.statuses.processing)))
+      .orderBy(desc(packageUpdateEvents.startedAt));
+    const recentRows = await db
+      .select()
+      .from(packageUpdateEvents)
+      .where(and(eq(packageUpdateEvents.organizationId, organizationId), ne(packageUpdateEvents.status, this.statuses.processing)))
+      .orderBy(desc(packageUpdateEvents.finishedAt))
+      .limit(this.recentEventsLimit);
+    return {
+      processing: processingRows.map((row) => this.toEvent(row)),
+      recent: recentRows.map((row) => this.toEvent(row)),
+    };
+  }
 }

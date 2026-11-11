@@ -1,0 +1,3 @@
+{
+  "files": [{ "source": "workflows/ci.yml", "path": ".github/workflows/ci.yml" }]
+}

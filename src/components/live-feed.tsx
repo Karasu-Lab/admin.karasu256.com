@@ -4,7 +4,8 @@ import { useEffect, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { Package } from 'lucide-react';
 import { Badge, Spinner } from '@karasu-lab/ui';
-import { getLiveFeedAction, type LiveFeedData, type PackageUpdateEvent } from '@/app/actions';
+import { getLiveFeedAction } from '@/app/actions/dashboard';
+import type { LiveFeedData, PackageUpdateEvent } from '@/lib/update-events';
 import { SettingsItemContainer, SettingsItemGroup } from './settings/settings-item-container';
 import { useReportLoading } from './settings/loading-context';
 

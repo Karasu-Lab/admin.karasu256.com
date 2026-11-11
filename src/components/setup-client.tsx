@@ -13,28 +13,18 @@ import {
   toast,
 } from '@karasu-lab/ui';
 import { Package, PackageCheck, Unlink, Workflow } from 'lucide-react';
+import { getSetupDataAction } from '@/app/actions/dashboard';
 import {
-  getSetupDataAction,
   startNpmRepositorySetupAction,
   startTemplateRepositorySetupAction,
   unlinkNpmSetupAction,
-  type SetupData,
-} from '@/app/actions';
+} from '@/app/actions/repository-setup';
+import type { SetupData } from '@/lib/dashboard-data';
 import { RepositorySetupForm } from './repository-setup-form';
 import { SettingsItemContainer } from './settings/settings-item-container';
 import { useReportLoading } from './settings/loading-context';
-import { SigningKeyAuthorizationSection } from './signing-key-authorization-section';
-import { SigningKeysSection } from './signing-keys-section';
 
-export function SetupClient({
-  tenantId,
-  authApiUrl,
-  appUrl,
-}: {
-  tenantId?: string;
-  authApiUrl: string;
-  appUrl: string;
-}) {
+export function SetupClient({ tenantId }: { tenantId?: string }) {
   const tNpmSetup = useTranslations('NpmSetup');
   const [data, setData] = useState<SetupData | null>(null);
   const [unlinkConfirmOpen, setUnlinkConfirmOpen] = useState(false);
@@ -74,7 +64,6 @@ export function SetupClient({
   const overview = data?.overview ?? null;
   const npmRepository = data?.npmRepository ?? null;
   const alreadyDone = Boolean(npmRepository?.npmRepositoryFullName && npmRepository?.workflowTemplateRepositoryFullName);
-  const settingsUrl = selected ? `${appUrl}/setup?tenant=${selected.id}` : `${appUrl}/setup`;
 
   return (
     <main className="flex-1 space-y-6 p-6">
@@ -159,12 +148,6 @@ export function SetupClient({
             icon={Workflow}
             iconBackgroundColor="#6e5494"
           />
-        </>
-      )}
-      {(loading || selected) && (
-        <>
-          <SigningKeyAuthorizationSection authApiUrl={authApiUrl} settingsUrl={settingsUrl} disabled={loading} />
-          <SigningKeysSection authApiUrl={authApiUrl} keys={overview?.signingKeys ?? []} disabled={loading} onRefresh={load} />
         </>
       )}
     </main>

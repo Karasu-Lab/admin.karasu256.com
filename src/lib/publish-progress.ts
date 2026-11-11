@@ -1,190 +1,120 @@
 import 'server-only';
-import { queryAdminDb, runAdminDb } from './admin-db';
+import { and, asc, eq } from 'drizzle-orm';
+import { z } from 'zod';
+import { packagePublishProgress } from '@/db/schema';
+import { getDb } from './admin-db';
 import { getInstallationToken } from './api-auth';
+import { GithubContents } from './github-contents';
+import { GithubIdentifiers } from './github-identifiers';
 
-export interface PackagePublishProgress {
-  id: string;
-  organizationId: string;
-  packageId: string;
-  repositoryFullName: string;
-  sha: string;
-  sourcePullRequestNumber: number;
-  bumpPullRequestUrl: string;
-  commentId: number | null;
-  headSha: string | null;
-  createdAt: string;
-}
+export type PackagePublishProgress = typeof packagePublishProgress.$inferSelect;
 
-interface PackagePublishProgressRow {
-  id: string;
-  organization_id: string;
-  package_id: string;
-  repository_full_name: string;
-  sha: string;
-  source_pull_request_number: number;
-  bump_pull_request_url: string;
-  comment_id: number | null;
-  head_sha: string | null;
-  created_at: string;
-}
-
-function toPackagePublishProgress(row: PackagePublishProgressRow): PackagePublishProgress {
-  return {
-    id: row.id,
-    organizationId: row.organization_id,
-    packageId: row.package_id,
-    repositoryFullName: row.repository_full_name,
-    sha: row.sha,
-    sourcePullRequestNumber: row.source_pull_request_number,
-    bumpPullRequestUrl: row.bump_pull_request_url,
-    commentId: row.comment_id,
-    headSha: row.head_sha,
-    createdAt: row.created_at,
-  };
-}
-
-export async function recordPublishProgress(input: {
-  organizationId: string;
-  packageId: string;
-  repositoryFullName: string;
-  sha: string;
-  sourcePullRequestNumber: number;
-  bumpPullRequestUrl: string;
-  headSha: string;
-}): Promise<string> {
-  const id = crypto.randomUUID();
-  await runAdminDb(
-    'INSERT INTO package_publish_progress (id, organization_id, package_id, repository_full_name, sha, source_pull_request_number, bump_pull_request_url, head_sha, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
-    [
-      id,
-      input.organizationId,
-      input.packageId,
-      input.repositoryFullName,
-      input.sha,
-      input.sourcePullRequestNumber,
-      input.bumpPullRequestUrl,
-      input.headSha,
-      new Date().toISOString(),
-    ]
-  );
-  return id;
-}
-
-export async function setPublishProgressComment(id: string, commentId: number): Promise<void> {
-  await runAdminDb('UPDATE package_publish_progress SET comment_id = ? WHERE id = ?', [commentId, id]);
-}
-
-export async function listPublishProgress(organizationId: string): Promise<PackagePublishProgress[]> {
-  const rows = await queryAdminDb<PackagePublishProgressRow>(
-    'SELECT id, organization_id, package_id, repository_full_name, sha, source_pull_request_number, bump_pull_request_url, comment_id, head_sha, created_at FROM package_publish_progress WHERE organization_id = ? ORDER BY created_at ASC',
-    [organizationId]
-  );
-  return rows.map(toPackagePublishProgress);
-}
-
-export async function deletePublishProgress(id: string): Promise<void> {
-  await runAdminDb('DELETE FROM package_publish_progress WHERE id = ?', [id]);
-}
-
-export interface PublishCommentTemplates {
-  pointerUpdate: string;
-  published: string;
-  publishFailed: string;
-  pointerUpdating: string | null;
-  pointerUpdateFailed: string | null;
-  publishing: string | null;
-}
-
-const PUBLISH_COMMENT_TEMPLATES_PATH = '.github/publish-progress-comments.json';
-
-export async function loadPublishCommentTemplates(
-  organizationId: string,
-  npmRepositoryFullName: string
-): Promise<PublishCommentTemplates | null> {
-  const { token } = await getInstallationToken(organizationId);
-  const response = await fetch(`https://api.github.com/repos/${npmRepositoryFullName}/contents/${PUBLISH_COMMENT_TEMPLATES_PATH}`, {
-    headers: {
-      accept: 'application/vnd.github+json',
-      authorization: ['Bearer', token].join(' '),
-      'user-agent': 'karasu-lab-admin',
-      'x-github-api-version': '2022-11-28',
-    },
-    cache: 'no-store',
+export function recordPublishProgressInputSchema() {
+  return z.object({
+    organizationId: z.string(),
+    packageId: z.string(),
+    repositoryFullName: z.string(),
+    sha: z.string(),
+    sourcePullRequestNumber: z.number(),
+    bumpPullRequestUrl: z.string(),
+    headSha: z.string(),
   });
-  if (!response.ok) return null;
-  const data = (await response.json().catch(() => null)) as { content?: string } | null;
-  if (!data?.content) return null;
-  let parsed: {
-    pointerUpdate?: unknown;
-    published?: unknown;
-    publishFailed?: unknown;
-    pointerUpdating?: unknown;
-    pointerUpdateFailed?: unknown;
-    publishing?: unknown;
-  };
-  try {
-    parsed = JSON.parse(Buffer.from(data.content, 'base64').toString('utf8')) as typeof parsed;
-  } catch {
-    return null;
-  }
-  if (
-    typeof parsed.pointerUpdate !== 'string' ||
-    parsed.pointerUpdate.length === 0 ||
-    typeof parsed.published !== 'string' ||
-    parsed.published.length === 0 ||
-    typeof parsed.publishFailed !== 'string' ||
-    parsed.publishFailed.length === 0
-  ) {
-    return null;
-  }
-  const optionalText = (value: unknown): string | null => (typeof value === 'string' && value.length > 0 ? value : null);
-  return {
-    pointerUpdate: parsed.pointerUpdate,
-    published: parsed.published,
-    publishFailed: parsed.publishFailed,
-    pointerUpdating: optionalText(parsed.pointerUpdating),
-    pointerUpdateFailed: optionalText(parsed.pointerUpdateFailed),
-    publishing: optionalText(parsed.publishing),
-  };
 }
 
-export function renderCommentTemplate(template: string, values: Record<string, string>): string {
-  let rendered = template;
-  for (const [key, value] of Object.entries(values)) {
-    rendered = rendered.replaceAll(`{${key}}`, value);
+export type RecordPublishProgressInput = z.infer<ReturnType<typeof recordPublishProgressInputSchema>>;
+
+export class PublishProgress {
+  async record(input: RecordPublishProgressInput): Promise<string> {
+    const id = crypto.randomUUID();
+    const db = await getDb();
+    await db
+      .insert(packagePublishProgress)
+      .values({ id, ...recordPublishProgressInputSchema().parse(input), createdAt: new Date().toISOString() });
+    return id;
   }
-  return rendered;
+
+  async setComment(id: string, organizationId: string, commentId: number): Promise<void> {
+    const db = await getDb();
+    await db
+      .update(packagePublishProgress)
+      .set({ commentId })
+      .where(and(eq(packagePublishProgress.id, id), eq(packagePublishProgress.organizationId, organizationId)));
+  }
+
+  async list(organizationId: string): Promise<PackagePublishProgress[]> {
+    const db = await getDb();
+    return db
+      .select()
+      .from(packagePublishProgress)
+      .where(eq(packagePublishProgress.organizationId, organizationId))
+      .orderBy(asc(packagePublishProgress.createdAt));
+  }
+
+  async delete(id: string, organizationId: string): Promise<void> {
+    const db = await getDb();
+    await db
+      .delete(packagePublishProgress)
+      .where(and(eq(packagePublishProgress.id, id), eq(packagePublishProgress.organizationId, organizationId)));
+  }
 }
 
-export async function resolvePublishedPackage(
-  organizationId: string,
-  repositoryFullName: string,
-  sha: string
-): Promise<{ name: string; version: string } | null> {
-  const { token } = await getInstallationToken(organizationId);
-  const response = await fetch(`https://api.github.com/repos/${repositoryFullName}/contents/package.json?ref=${sha}`, {
-    headers: {
-      accept: 'application/vnd.github+json',
-      authorization: ['Bearer', token].join(' '),
-      'user-agent': 'karasu-lab-admin',
-      'x-github-api-version': '2022-11-28',
-    },
-    cache: 'no-store',
+export function publishCommentTemplatesSchema() {
+  return z.object({
+    pointerUpdate: z.string().min(1),
+    published: z.string().min(1),
+    publishFailed: z.string().min(1),
+    pointerUpdating: z.string().min(1).nullable().catch(null),
+    pointerUpdateFailed: z.string().min(1).nullable().catch(null),
+    publishing: z.string().min(1).nullable().catch(null),
   });
-  if (!response.ok) return null;
-  const data = (await response.json().catch(() => null)) as { content?: string } | null;
-  if (!data?.content) return null;
-  let manifest: { name?: unknown; version?: unknown; versionNaming?: { pattern?: unknown } };
-  try {
-    manifest = JSON.parse(Buffer.from(data.content, 'base64').toString('utf8')) as typeof manifest;
-  } catch {
-    return null;
+}
+
+export type PublishCommentTemplates = z.infer<ReturnType<typeof publishCommentTemplatesSchema>>;
+
+export function publishedManifestSchema() {
+  return z.object({
+    name: z.string(),
+    version: z.string(),
+    versionNaming: z.object({ pattern: z.string().optional().catch(undefined) }).optional().catch(undefined),
+  });
+}
+
+export class PublishComments {
+  templatesPath = '.github/publish-progress-comments.json';
+  manifestPath = 'package.json';
+  placeholderPattern = /\{([A-Za-z]+)\}/g;
+  defaultVersionNaming = '{version}-{shortCommitHash}';
+  identifiers = new GithubIdentifiers();
+  contents = new GithubContents();
+
+  async loadTemplates(organizationId: string, npmRepositoryFullName: string): Promise<PublishCommentTemplates | null> {
+    const { token } = await getInstallationToken(organizationId);
+    const content = await this.contents.readJson(token, npmRepositoryFullName, this.templatesPath);
+    const parsed = publishCommentTemplatesSchema().safeParse(content);
+    return parsed.success ? parsed.data : null;
   }
-  if (typeof manifest.name !== 'string' || typeof manifest.version !== 'string') return null;
-  const pattern = typeof manifest.versionNaming?.pattern === 'string' ? manifest.versionNaming.pattern : '{version}-{shortCommitHash}';
-  const version = pattern
-    .replaceAll('{version}', manifest.version)
-    .replaceAll('{shortCommitHash}', sha.slice(0, 7))
-    .replaceAll('{commitHash}', sha);
-  return { name: manifest.name, version };
+
+  render(template: string, values: Record<string, string>): string {
+    return template.replace(this.placeholderPattern, (placeholder, key: string) =>
+      Object.hasOwn(values, key) ? values[key] : placeholder
+    );
+  }
+
+  async resolvePublishedPackage(
+    organizationId: string,
+    repositoryFullName: string,
+    sha: string
+  ): Promise<{ name: string; version: string } | null> {
+    if (!this.identifiers.isCommitSha(sha)) return null;
+    const { token } = await getInstallationToken(organizationId);
+    const content = await this.contents.readJson(token, repositoryFullName, this.manifestPath, sha);
+    const manifest = publishedManifestSchema().safeParse(content);
+    if (!manifest.success) return null;
+    const pattern = manifest.data.versionNaming?.pattern ?? this.defaultVersionNaming;
+    const version = pattern
+      .replaceAll('{version}', manifest.data.version)
+      .replaceAll('{shortCommitHash}', sha.slice(0, 7))
+      .replaceAll('{commitHash}', sha);
+    return { name: manifest.data.name, version };
+  }
 }

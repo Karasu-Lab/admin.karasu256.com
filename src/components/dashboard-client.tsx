@@ -5,7 +5,10 @@ import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { Badge, Button, Card, CardContent, CardHeader, CardTitle, Spinner, toast } from '@karasu-lab/ui';
 import { ArrowRight, Check, Settings } from 'lucide-react';
-import { getDashboardDataAction, markSetupCompletedAction, type DashboardData, type LiveFeedData } from '@/app/actions';
+import { getDashboardDataAction } from '@/app/actions/dashboard';
+import { markSetupCompletedAction } from '@/app/actions/tenant';
+import type { DashboardData } from '@/lib/dashboard-data';
+import type { LiveFeedData } from '@/lib/update-events';
 import { LiveFeed } from './live-feed';
 import { RepositoryImport } from './repository-import';
 import { useReportLoading } from './settings/loading-context';
@@ -76,13 +79,6 @@ export function DashboardClient({
       done: Boolean(overview?.installation),
       title: tOnboarding('bot'),
       description: tOnboarding('botDescription'),
-      href: settingsHref,
-      hrefLabel: tOnboarding('startSetup'),
-    },
-    {
-      done: Boolean(overview?.signingKeys.some((key) => key.enabled && key.registeredOnGitHub)),
-      title: tOnboarding('signingKey'),
-      description: tOnboarding('signingKeyDescription'),
       href: settingsHref,
       hrefLabel: tOnboarding('startSetup'),
     },

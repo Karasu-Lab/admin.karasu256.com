@@ -1,54 +1,64 @@
-export interface TenantSummary {
-  id: string;
-  name: string;
-  slug: string;
-  logo: string | null;
-  role: string;
+import { z } from 'zod';
+
+export function tenantSummarySchema() {
+  return z.object({
+    id: z.string(),
+    name: z.string(),
+    slug: z.string(),
+    logo: z.string().nullable(),
+    role: z.string(),
+  });
 }
 
-export interface TenantInstallation {
-  id: string;
-  installationId: number;
-  targetType: string;
-  targetId: number;
-  targetLogin: string;
-  suspended: boolean;
-  installedByUserId: string | null;
+export type TenantSummary = z.infer<ReturnType<typeof tenantSummarySchema>>;
+
+export function tenantInstallationSchema() {
+  return z.object({
+    id: z.string(),
+    installationId: z.number(),
+    targetType: z.string(),
+    targetId: z.number(),
+    targetLogin: z.string(),
+    suspended: z.boolean(),
+    installedByUserId: z.string().nullable(),
+  });
 }
 
-export interface TenantLinkedPackage {
-  id: string;
-  repositoryId: number;
-  repositoryFullName: string;
-  submodulePath: string;
-  versionNaming: string;
-  enabled: boolean;
-  lastSyncedSha: string | null;
+export type TenantInstallation = z.infer<ReturnType<typeof tenantInstallationSchema>>;
+
+export function tenantLinkedPackageSchema() {
+  return z.object({
+    id: z.string(),
+    repositoryId: z.number(),
+    repositoryFullName: z.string(),
+    submodulePath: z.string(),
+    versionNaming: z.string(),
+    enabled: z.boolean(),
+    lastSyncedSha: z.string().nullable(),
+  });
 }
 
-export interface UserSigningKey {
-  id: string;
-  publicKeyId: string;
-  name: string;
-  enabled: boolean;
-  registeredOnGitHub: boolean;
-  publicKey: string;
-  createdAt: string;
-  updatedAt: string;
+export type TenantLinkedPackage = z.infer<ReturnType<typeof tenantLinkedPackageSchema>>;
+
+export function tenantOverviewSchema() {
+  return z.object({
+    organization: z.object({ id: z.string(), name: z.string(), slug: z.string(), role: z.string() }),
+    installation: tenantInstallationSchema().nullable(),
+    linkedPackages: z.array(tenantLinkedPackageSchema()),
+  });
 }
 
-export interface TenantOverview {
-  organization: { id: string; name: string; slug: string; role: string };
-  installation: TenantInstallation | null;
-  linkedPackages: TenantLinkedPackage[];
-  signingKeys: UserSigningKey[];
+export type TenantOverview = z.infer<ReturnType<typeof tenantOverviewSchema>>;
+
+export function installationRepositorySchema() {
+  return z.object({
+    id: z.number(),
+    fullName: z.string(),
+    name: z.string(),
+    private: z.boolean(),
+    htmlUrl: z.string(),
+    defaultBranch: z.string(),
+  });
 }
 
-export interface InstallationRepository {
-  id: number;
-  fullName: string;
-  name: string;
-  private: boolean;
-  htmlUrl: string;
-  defaultBranch: string;
-}
+export type InstallationRepository = z.infer<ReturnType<typeof installationRepositorySchema>>;

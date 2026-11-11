@@ -112,3 +112,23 @@ export function parseGitHubWebhookPayload(event: string, payload: unknown): GitH
       return { success: false, reason: 'unknown_event' };
   }
 }
+
+export function githubWebhookEventSchema() {
+  return z.enum(['push', 'installation', 'workflow_run']);
+}
+
+export type GithubWebhookEvent = z.infer<ReturnType<typeof githubWebhookEventSchema>>;
+
+export class GithubWebhookPayloads {
+  push(payload: unknown) {
+    return githubPushWebhookPayloadSchema.safeParse(payload);
+  }
+
+  installation(payload: unknown) {
+    return githubInstallationWebhookPayloadSchema.safeParse(payload);
+  }
+
+  workflowRun(payload: unknown) {
+    return githubWorkflowRunWebhookPayloadSchema.safeParse(payload);
+  }
+}
