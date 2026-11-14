@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
+import { ADMIN_TENANT_TYPE } from '@karasu-lab/types/shared';
 import { Button, Dialog, DialogBackdrop, DialogPopup, DialogPortal, DialogTitle, Input, Label, Spinner, toast } from '@karasu-lab/ui';
 
 interface CreateTenantDialogProps {
@@ -36,7 +37,7 @@ export function CreateTenantDialog({ open, onOpenChange, authApiUrl }: CreateTen
           method: 'POST',
           credentials: 'include',
           headers: { 'content-type': 'application/json' },
-          body: JSON.stringify({ name, slug }),
+          body: JSON.stringify({ name, slug, type: ADMIN_TENANT_TYPE }),
         }
       );
       if (!response.ok) {

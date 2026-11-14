@@ -1,5 +1,11 @@
 import 'server-only';
 import { z } from 'zod';
+import {
+  assignTenantTypeRequestSchema,
+  assignTenantTypeResponseSchema,
+  type AssignTenantTypeRequest,
+  type AssignTenantTypeResponse,
+} from '@karasu-lab/types/shared';
 import { MissingEnvError, signRequest } from '@karasu-lab/utils/server';
 import { GithubIdentifiers } from './github-identifiers';
 import { tenantOverviewSchema, tenantSummarySchema, type TenantOverview, type TenantSummary } from './tenants';
@@ -107,6 +113,13 @@ export async function getGithubAppInstallUrl(): Promise<string> {
 
 export async function getTenantOverview(organizationId: string, userId: string): Promise<TenantOverview> {
   return apiAuthJson(`${tenantPath(organizationId)}/overview?userId=${encodeURIComponent(userId)}`, tenantOverviewSchema());
+}
+
+export async function assignTenantType(organizationId: string, body: AssignTenantTypeRequest): Promise<AssignTenantTypeResponse> {
+  return apiAuthJson(`${tenantPath(organizationId)}/type`, assignTenantTypeResponseSchema, {
+    method: 'POST',
+    body: assignTenantTypeRequestSchema.parse(body),
+  });
 }
 
 export async function getTenantInstallationId(organizationId: string): Promise<number | null> {

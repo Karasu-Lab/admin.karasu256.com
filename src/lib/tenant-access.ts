@@ -1,7 +1,8 @@
 import 'server-only';
 import { z } from 'zod';
+import { ADMIN_TENANT_TYPE } from '@karasu-lab/types/shared';
 import { getSessionUser } from '@karasu-lab/utils/server';
-import { getTenantOverview } from './api-auth';
+import { assignTenantType, getTenantOverview } from './api-auth';
 import { getClientConfig } from './client-config';
 import { tenantOverviewSchema } from './tenants';
 
@@ -38,6 +39,7 @@ export class TenantAccess {
   async requireMember(organizationId: string): Promise<TenantAccessResult> {
     const userId = await this.requireUserId();
     const overview = await getTenantOverview(organizationId, userId);
+    await assignTenantType(organizationId, { userId, type: ADMIN_TENANT_TYPE });
     return { userId, overview };
   }
 

@@ -10,7 +10,7 @@
     "lint": "eslint"
   },
   "dependencies": {
-    "@karasu-lab/types": "0.1.0-1950a9c",
+    "@karasu-lab/types": "0.1.0-13e81dd",
     "@karasu-lab/ui": "0.1.0-fded8d2",
     "@karasu-lab/utils": "0.1.0-11f53a9",
     "better-auth": "^1.7.12",
