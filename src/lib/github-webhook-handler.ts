@@ -42,6 +42,7 @@ export class GithubWebhookHandler {
   events = githubWebhookEventSchema().enum;
   errors = webhookErrorSchema().enum;
   ignored = webhookIgnoredReasonSchema().enum;
+  expectedSkipReasons = new Set(['installation_not_linked', 'package_not_linked', 'package_disabled', 'already_synced']);
   routes = new Map<string, WebhookRoute>([
     [this.events.push, (payload, context) => this.handlePush(payload, context)],
     [this.events.installation, (payload, context) => this.handleInstallation(payload, context)],
@@ -105,10 +106,12 @@ export class GithubWebhookHandler {
       });
     }
     if (!decision.accepted || !decision.organizationId || !decision.package) {
+      const reason = decision.reason ?? this.ignored.not_accepted;
+      const expected = this.expectedSkipReasons.has(reason);
       log(
-        'github_webhook_failed',
-        { reason: decision.reason ?? this.ignored.not_accepted, deliveryId: context.deliveryId, repositoryFullName: push.repository.full_name },
-        'error'
+        expected ? 'github_webhook_skipped' : 'github_webhook_failed',
+        { reason, deliveryId: context.deliveryId, repositoryFullName: push.repository.full_name },
+        expected ? 'info' : 'error'
       );
       return Response.json(
         { accepted: false, reason: context.routedOrganizationId ? this.ignored.not_accepted : (decision.reason ?? this.ignored.not_accepted) },
