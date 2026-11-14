@@ -22,3 +22,4 @@ overrides:
 # to every third-party dependency.
 minimumReleaseAgeExclude:
   - '@karasu-lab/*'
+  - '@karasu-lab/types@0.1.0-1950a9c'
