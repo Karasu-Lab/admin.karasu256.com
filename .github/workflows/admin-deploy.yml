@@ -7,6 +7,7 @@ on:
 
 jobs:
   d1:
+    if: github.actor != 'dependabot[bot]'
     runs-on: ubuntu-latest
     permissions:
       actions: write
